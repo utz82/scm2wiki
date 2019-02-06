@@ -1,0 +1,16 @@
+(import chicken scheme)
+(include "scm2wiki.scm")
+
+(define (parse-args)
+  (if (< (length (argv)) 2)
+      (error "Usage: scm2wiki infile <outfile <prefix>>")
+      (list (cadr (argv))
+	    (if (> (length (argv)) 2)
+		(caddr (argv))
+		(string-append (cadr (argv)) ".wiki"))
+	    (if (= (length (argv)) 4)
+		(cadddr (argv))
+		s2w:default-prefix))))
+
+(let ((args (parse-args)))
+  (s2w:source->wiki (car args) (cadr args) (caddr args)))
