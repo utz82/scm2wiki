@@ -34,4 +34,4 @@ Feel free to run scm2wiki on it's own source for a more detailed example.
 
 ### Limitations
 
-For now, scm2wiki only handles procedure definitions, and ignores everything else.
+For now, scm2wiki only handles procedure definitions, and ignores everything else. It also cannot transform variadic function definitions.
