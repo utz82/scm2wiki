@@ -8,6 +8,9 @@ Note that there are other, more advanced documentation tools available for Chick
 
 Not many, to be honest. Any line starting with a special comment prefix (user definable, using ";;;" by default) is considered as input to the converter. Furthermore, procedure definitions that are directly preceded by a comment block are converted to `<procedure>` statements. These statements are moved to the top of their respective comment block.
 
+### Usage
+
+`$ scm2wiki infile.scm <outfile.wiki <prefix>>`
 
 ### Example
 
@@ -18,6 +21,10 @@ Not many, to be honest. Any line starting with a special comment prefix (user de
 ;;; a procedure definition
 (define (my-fun arg)
   arg)
+
+;; ignoring this one
+(define (another-fun arg)
+  '())
 ```
 
 becomes
