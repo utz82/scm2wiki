@@ -97,12 +97,11 @@
 ;;; remove leading whitespace and drop all lines but those containing
 ;;; comments with the desired prefix, or type annotations, or definitions
 (define (s2w:filter-input lines prefix)
-  (map string-trim
-       (remove (lambda (s)
-		 (and (not (string-null? s))
-		      (not (string-prefix? prefix s))
-		      (not (string-prefix? "(define (" s))))
-	       lines)))
+  (remove (lambda (s)
+	    (and (not (string-null? s))
+		 (not (string-prefix? prefix s))
+		 (not (string-prefix? "(define (" s))))
+	  (map string-trim lines)))
 
 
 (define (s2w:get-prefix-arg prefix)
