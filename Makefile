@@ -1,4 +1,4 @@
-scm2wiki: scm2wiki-bin-wrapper.scm
+scm2wiki: scm2wiki-bin-wrapper.scm scm2wiki.scm
 	csc scm2wiki-bin-wrapper.scm -b -O3 -o scm2wiki
 
 doc-test: scm2wiki
