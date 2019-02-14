@@ -10,7 +10,7 @@ Not many, to be honest. Any line starting with a special comment prefix (user de
 
 ### Usage
 
-`$ scm2wiki infile.scm <outfile.wiki <prefix>>`
+`$ scm2wiki -i infile.scm [-o outfile.wiki] [-p prefix]`
 
 ### Example
 
