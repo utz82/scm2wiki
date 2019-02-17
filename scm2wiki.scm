@@ -101,7 +101,10 @@
 ;; Some internal function that will not appear in the output documentation.
 (define (s2w:remove-prefix line prefix)
   (if (string-prefix? prefix line)
-      (string-trim (string-drop line (string-length prefix)))
+      (let ((prefix-len (string-length prefix)))
+	(string-drop line (if (> (string-length line) prefix-len)
+			      (+ 1 prefix-len)
+			      prefix-len)))
       line))
 
 ;;; Convert function definitions to <procedure>(fn args)</procedure> tags.
