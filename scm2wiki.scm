@@ -26,77 +26,9 @@
 (use srfi-1 srfi-13 extras)
 
 (define s2w:default-prefix ";;;")
-
-;;; Peek ahead in the list of lines to see if the current comment block is
-;;; followed by a definition. If it is, the line containing the definition is
-;;; returned.
-(define (s2w:peek-ahead lines prefix)
-  (if (null? lines)
-      #f
-      (cond ((string-prefix? "<procedure>" (car lines))
-	     (car lines))
-	    ((not (string-prefix? prefix (car lines)))
-	     #f)
-	    (else (s2w:peek-ahead (cdr lines) prefix)))))
-
-;;; extract the comment block starting at (car lines)
-(define (s2w:get-comment lines prefix)
-  (if (or (null? lines)
-	  (not (string-prefix? prefix (car lines))))
-      '()
-      (cons (car lines)
-	    (s2w:get-comment (cdr lines) prefix))))
-
-;;; Reduce multiple consecutive empty lines to a single one.
-(define (s2w:collapse-empty-lines lines)
-  (letrec ((collapse-empty
-	     (lambda (remaining-lines previous-line-empty?)
-	       (if (null? remaining-lines)
-		   '()
-		   (if previous-line-empty?
-		       (if (string-null? (car remaining-lines))
-			   (collapse-empty (cdr remaining-lines) #t)
-			   (cons (car remaining-lines)
-				 (collapse-empty (cdr remaining-lines) #f)))
-		       (cons (car remaining-lines)
-			     (collapse-empty (cdr remaining-lines)
-					     (string-null?
-					      (car remaining-lines)))))))))
-    (collapse-empty lines #f)))
-
-;;; Swap defines with their preceding comment
-(define (s2w:swap-defines lines prefix)
-  (if (null? lines)
-      '()
-      (let ((comment (s2w:get-comment lines prefix)))
-	(if (null? comment)
-	    (if (string-prefix? "<procedure>" (car lines))
-		(s2w:swap-defines (cdr lines) prefix)
-		(cons (car lines)
-		      (s2w:swap-defines (cdr lines) prefix)))
-	    (let ((next-define (s2w:peek-ahead lines prefix)))
-	      (append (if next-define
-			  (cons next-define comment)
-			  comment)
-		      (s2w:swap-defines (drop lines (length comment))
-					prefix)))))))
-
-;;; filter out function definitions that are not commented.
-(define (s2w:remove-uncommented-defines lines prefix)
-  (letrec ((rm-uncommented
-	    (lambda (remaining-lines preceded-by-comment?)
-	      (if (null? remaining-lines)
-		  '()
-		  (if (and (not preceded-by-comment?)
-			   (string-prefix? "<procedure>"
-					   (car remaining-lines)))
-		      (rm-uncommented (cdr remaining-lines) #f)
-		      (cons (car remaining-lines)
-			    (rm-uncommented
-			     (cdr remaining-lines)
-			     (string-prefix? prefix
-					     (car remaining-lines)))))))))
-    (rm-uncommented lines #f)))
+(define s2w:heading-tokens '("==" "#"))
+(define s2w:codeblock-begin-tokens '("<enscript>" "```"))
+(define s2w:codeblock-end-tokens '("</enscript>" "```"))
 
 ;; Some internal function that will not appear in the output documentation.
 (define (s2w:remove-prefix line prefix)
@@ -107,35 +39,163 @@
 			      prefix-len)))
       line))
 
-;;; Convert function definitions to <procedure>(fn args)</procedure> tags.
-(define (s2w:tokenize-defines line)
-  (if (string-prefix? "(define (" line)
-      (string-append "<procedure>"
-		     (substring/shared line 8)
-		     "</procedure>")
-      line))
+;;; Check if a source line is a procedure definition
+(define (s2w:proc-define? line)
+  (string-prefix-ci? "(define (" line))
 
+(define (s2w:strip-token token-lst line)
+  (if (string-prefix? (car token-lst) line)
+      (string-drop line (string-length (car token-lst)))
+      (s2w:strip-token (cdr token-lst) line)))
 
-;;; remove leading whitespace and drop all lines but those containing
+(define (s2w:transform-heading node mode)
+  (let* ((heading-char? (lambda (char)
+			  (or (equal? char #\=)
+			      (equal? char #\#))))
+	 (heading (s2w:strip-token s2w:heading-tokens (cadr node)))
+	 (level (+ 1 (length (take-while heading-char?
+					 (string->list heading))))))
+    (list (list->string
+	   (append (if (string= mode "markdown")
+		       (make-list level #\#)
+		       (make-list (+ 1 level) #\=))
+		   (drop-while heading-char? (string->list heading))))
+	  "")))
+
+(define (s2w:transform-text node ...)
+  (append (cadr node)
+	  (list "")))
+
+(define (s2w:transform-definition node mode)
+  (if (string= mode "markdown")
+      (list "**PROCEDURE:**" "```scheme" (cadr node) "```")
+      (list (string-append "<procedure>" (cadr node) "</procedure>"))))
+
+(define (s2w:transform-codeblock node mode)
+  (let ((lines (cadr node)))
+    (if (string= mode "markdown")
+	(cons "```scheme"
+	      (append lines (list "```")))
+	(cons "<enscript=scheme>"
+	      (append lines (list "</enscript>"))))))
+
+(define (s2w:transform-nodes nodes mode)
+  (concatenate (map (lambda (node)
+		      ((car node) node mode))
+		    nodes)))
+
+(define (s2w:transform-meta-nodes meta-nodes mode)
+  (concatenate (map (lambda (meta-node)
+		      (s2w:transform-nodes meta-node mode))
+		    meta-nodes)))
+
+(define (s2w:any-tokens? token-lst line)
+  (not (null? (filter (lambda (token)
+			(string-contains line token))
+		      token-lst))))
+
+(define (s2w:prefix-remove-proc prefix)
+  (lambda (line)
+    (s2w:remove-prefix line prefix)))
+
+(define (s2w:extract-regular-comment lines prefix)
+  (map (s2w:prefix-remove-proc prefix)
+       (take-while (lambda (line)
+		     (and (not (s2w:proc-define? line))
+			  (not (s2w:any-tokens?
+				(append s2w:heading-tokens
+					s2w:codeblock-begin-tokens)
+				line))))
+		   lines)))
+
+(define (s2w:extract-code-comment lines prefix)
+  (let ((comment-head
+	 (take-while
+	  (lambda (line)
+	    (not (s2w:any-tokens? s2w:codeblock-end-tokens
+				  line)))
+	  lines)))
+    (map (s2w:prefix-remove-proc prefix)
+	 (append comment-head (car (drop lines (length comment-head)))))))
+
+;;; Transform comment blocks into meta-nodes
+(define (s2w:get-subnodes lines prefix)
+  (if (null? lines)
+      '()
+      ;; next-node returns number of lines consumed in car, node in cadr
+      (let ((next-node
+	     (cond ((s2w:proc-define? (car lines))
+		    (list 1 (list s2w:transform-definition
+				  (s2w:remove-prefix (car lines)
+						     "(define"))))
+		   ((s2w:any-tokens? s2w:heading-tokens
+				     (car lines))
+		    (list 1 (list s2w:transform-heading
+				  (s2w:remove-prefix (car lines)
+						     prefix))))
+		   ((s2w:any-tokens? s2w:codeblock-begin-tokens
+				     (car lines))
+		    (let ((block (s2w:extract-code-comment lines prefix)))
+		      (list (length block)
+			    (list s2w:transform-codeblock block))))
+		   (else (let ((block (s2w:extract-regular-comment
+				       lines prefix)))
+			   (list (length block)
+				 (list s2w:transform-text block)))))))
+	(cons (cadr next-node)
+	      (s2w:get-subnodes (drop lines (car next-node))
+				prefix)))))
+
+;;; Bring procedure definitions to the first line
+(define (s2w:reorder-nodes nodes)
+  (let ((proc-define? (lambda (node)
+			(eq? s2w:transform-definition (car node)))))
+    (if (any proc-define? nodes)
+	(cons (find proc-define? nodes)
+	      (remove proc-define? nodes))
+	nodes)))
+
+(define (s2w:block->nodes comment prefix)
+  (s2w:reorder-nodes (s2w:get-subnodes comment prefix)))
+
+;;; Extract comment blocks from source lines
+(define (s2w:extract-blocks lines)
+  (if (null? lines)
+      '()
+      (let ((next-block
+	     (take-while (lambda (s)
+			   (if (string-null? (car lines))
+			       (string-null? s)
+			       (not (string-null? s))))
+			 lines)))
+	(cons next-block
+	      (s2w:extract-blocks
+	       (drop lines (length next-block)))))))
+
+;;; Transform source into a list of typed nodes, discarding input that will not
+;;; be processed
+(define (s2w:nodify lines prefix)
+  (map (lambda (block)
+	 (s2w:block->nodes block prefix))
+       (remove (lambda (block)
+		 (or (string-null? (car block))
+		     (s2w:proc-define? (car block))))
+	       (s2w:extract-blocks (s2w:filter-input lines prefix)))))
+
+;;; Remove leading whitespace and drop all lines but those containing
 ;;; comments with the desired prefix, or type annotations, or definitions
 (define (s2w:filter-input lines prefix)
   (filter (lambda (s)
 	    (or (string-null? s)
 	        (string-prefix? prefix s)
-	        (string-prefix? "(define (" s)))
+	        (s2w:proc-define? s)))
 	  (map string-trim lines)))
 
-;;; Parse a Scheme source file into a list of svnwiki strings.
-(define (s2w:parse-file filename prefix mode)
-  (map (lambda (s)
-	 (s2w:remove-prefix s prefix))
-       (s2w:swap-defines
-	(s2w:collapse-empty-lines
-	 (s2w:remove-uncommented-defines
-	  (map s2w:tokenize-defines (s2w:filter-input (read-lines filename)
-						      prefix))
-	  prefix))
-	prefix)))
+;;; Parse a Scheme source file into a list of meta-nodes.
+(define (s2w:parse-source filename prefix mode)
+  (s2w:transform-meta-nodes (s2w:nodify (read-lines filename)
+					prefix)
+			    mode))
 
 ;;; Export a list of svnwiki strings to the given file.
 (define (s2w:export-doc filename lines)
@@ -148,4 +208,4 @@
 ;;; Generate a svnwiki file from the given Scheme source.
 ;;; If {{prefix}} is omitted, ";;;" will be used.
 (define (s2w:source->doc infile outfile prefix mode)
-  (s2w:export-doc outfile (s2w:parse-file infile prefix mode)))
+  (s2w:export-doc outfile (s2w:parse-source infile prefix mode)))

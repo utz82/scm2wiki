@@ -38,7 +38,10 @@
   (if (< (length (argv)) 3)
       (arg-error)
       (let* ((infile (read-flag-arg "-i" 'error))
-	     (outfile (read-flag-arg "-o" (string-append infile ".wiki")))
+	     (outfile (read-flag-arg
+		       "-o" (string-append infile
+					   (if (string= mode "markdown")
+					       ".md" ".wiki"))))
 	     (comment-prefix (read-flag-arg "-p" s2w:default-prefix))
 	     (mode (read-flag-arg "-m" "svnwiki")))
 	(list infile outfile comment-prefix mode))))
