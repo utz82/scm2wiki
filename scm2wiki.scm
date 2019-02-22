@@ -119,33 +119,26 @@
 ;;; remove leading whitespace and drop all lines but those containing
 ;;; comments with the desired prefix, or type annotations, or definitions
 (define (s2w:filter-input lines prefix)
-  (remove (lambda (s)
-	    (and (not (string-null? s))
-		 (not (string-prefix? prefix s))
-		 (not (string-prefix? "(define (" s))))
+  (filter (lambda (s)
+	    (or (string-null? s)
+	        (string-prefix? prefix s)
+	        (string-prefix? "(define (" s)))
 	  (map string-trim lines)))
 
-
-(define (s2w:get-prefix-arg prefix)
-  (if (null? prefix)
-      s2w:default-prefix
-      (car prefix)))
-
 ;;; Parse a Scheme source file into a list of svnwiki strings.
-(define (s2w:parse-file filename . prefix)
-  (let ((pf (s2w:get-prefix-arg prefix)))
-    (map (lambda (s)
-	   (s2w:remove-prefix s pf))
-	 (s2w:swap-defines
-	  (s2w:collapse-empty-lines
-	   (s2w:remove-uncommented-defines
-	    (map s2w:tokenize-defines (s2w:filter-input (read-lines filename)
-							pf))
-	    pf))
-	  pf))))
+(define (s2w:parse-file filename prefix mode)
+  (map (lambda (s)
+	 (s2w:remove-prefix s prefix))
+       (s2w:swap-defines
+	(s2w:collapse-empty-lines
+	 (s2w:remove-uncommented-defines
+	  (map s2w:tokenize-defines (s2w:filter-input (read-lines filename)
+						      prefix))
+	  prefix))
+	prefix)))
 
 ;;; Export a list of svnwiki strings to the given file.
-(define (s2w:export-wiki filename lines)
+(define (s2w:export-doc filename lines)
   (call-with-output-file filename
     (lambda (out)
       (for-each (lambda (line)
@@ -154,6 +147,5 @@
 
 ;;; Generate a svnwiki file from the given Scheme source.
 ;;; If {{prefix}} is omitted, ";;;" will be used.
-(define (s2w:source->wiki infile outfile . prefix)
-  (let ((pf (s2w:get-prefix-arg prefix)))
-    (s2w:export-wiki outfile (s2w:parse-file infile pf))))
+(define (s2w:source->doc infile outfile prefix mode)
+  (s2w:export-doc outfile (s2w:parse-file infile prefix mode)))
