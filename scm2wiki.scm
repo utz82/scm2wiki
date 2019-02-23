@@ -23,7 +23,7 @@
 ;; SOFTWARE.
 
 
-(use srfi-1 srfi-13 extras)
+(use srfi-1 srfi-13 extras irregex)
 
 (define s2w:default-prefix ";;;")
 (define s2w:heading-tokens '("==" "#"))
@@ -38,6 +38,31 @@
 			      (+ 1 prefix-len)
 			      prefix-len)))
       line))
+
+;;; Replace formatted sections of {{str}} with formatting appropriate for
+;; {{mode}}
+(define (s2w:reformat str mode)
+  (let ((replace-fmt-type
+	 (lambda (type s)
+	   (let-values (((search-expr prefix postfix strip-expr)
+			 (if (eq? type 'bold)
+			     (if (string= mode "markdown")
+				 (values '(: "{{" (+ (~ "}}")) "}}")
+					 "**" "**" '(or "{{" "}}"))
+				 (values '(: "**" (+ (~ "**")) "**")
+					 "{{" "}}" '("**")))
+			     (if (string= mode "markdown")
+				 (values '(: "''" (+ (~ "''")) "''")
+					 "*" "*" '("''"))
+				 (values '(: "*" (+ (~ "*")) "*")
+					 "''" "''" '("*"))))))
+	     (irregex-replace/all
+	      search-expr s
+	      (lambda (m)
+		(string-append prefix (irregex-replace/all
+				       strip-expr (irregex-match-substring m))
+			       postfix)))))))
+    (replace-fmt-type 'italic (replace-fmt-type 'bold str))))
 
 ;;; Check if a source line is a procedure definition
 (define (s2w:proc-define? line)
@@ -62,8 +87,10 @@
 		   (drop-while heading-char? (string->list heading))))
 	  "")))
 
-(define (s2w:transform-text node ...)
-  (append (cadr node)
+(define (s2w:transform-text node mode)
+  (append (map (lambda (line)
+		 (s2w:reformat line mode))
+	       (cadr node))
 	  (list "")))
 
 (define (s2w:transform-definition node mode)
