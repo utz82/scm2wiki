@@ -24,7 +24,7 @@
 (include "scm2wiki.scm")
 
 (define (arg-error)
-  (error "Usage: scm2wiki -i infile [-o outfile] [-p prefix] [-m mode]"))
+  (error "Usage: scm2wiki -i infile [-o outfile] [-p prefix] [-m]"))
 
 (define (read-flag-arg flag default-val)
   (if (member flag (argv) string=)
@@ -37,13 +37,14 @@
 (define (parse-args)
   (if (< (length (argv)) 3)
       (arg-error)
-      (let* ((infile (read-flag-arg "-i" 'error))
+      (let* ((mode (if (member "-m" (argv))
+		       'markdown 'svn))
+	     (infile (read-flag-arg "-i" 'error))
 	     (outfile (read-flag-arg
 		       "-o" (string-append infile
-					   (if (string= mode "markdown")
+					   (if (eq? mode 'markdown)
 					       ".md" ".wiki"))))
-	     (comment-prefix (read-flag-arg "-p" s2w:default-prefix))
-	     (mode (read-flag-arg "-m" "svnwiki")))
+	     (comment-prefix (read-flag-arg "-p" s2w:default-prefix)))
 	(list infile outfile comment-prefix mode))))
 
 (apply s2w:source->doc (parse-args))

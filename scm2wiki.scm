@@ -40,18 +40,18 @@
       line))
 
 ;;; Replace formatted sections of {{str}} with formatting appropriate for
-;; {{mode}}
+;;; {{mode}}
 (define (s2w:reformat str mode)
   (let ((replace-fmt-type
 	 (lambda (type s)
 	   (let-values (((search-expr prefix postfix strip-expr)
 			 (if (eq? type 'bold)
-			     (if (string= mode "markdown")
+			     (if (eq? mode 'markdown)
 				 (values '(: "{{" (+ (~ "}}")) "}}")
 					 "**" "**" '(or "{{" "}}"))
 				 (values '(: "**" (+ (~ "**")) "**")
 					 "{{" "}}" '("**")))
-			     (if (string= mode "markdown")
+			     (if (eq? mode 'markdown)
 				 (values '(: "''" (+ (~ "''")) "''")
 					 "*" "*" '("''"))
 				 (values '(: "*" (+ (~ "*")) "*")
@@ -81,7 +81,7 @@
 	 (level (+ 1 (length (take-while heading-char?
 					 (string->list heading))))))
     (list (list->string
-	   (append (if (string= mode "markdown")
+	   (append (if (eq? mode 'markdown)
 		       (make-list level #\#)
 		       (make-list (+ 1 level) #\=))
 		   (drop-while heading-char? (string->list heading))))
@@ -94,13 +94,13 @@
 	  (list "")))
 
 (define (s2w:transform-definition node mode)
-  (if (string= mode "markdown")
+  (if (eq? mode 'markdown)
       (list "**PROCEDURE:**" "```scheme" (cadr node) "```")
       (list (string-append "<procedure>" (cadr node) "</procedure>"))))
 
 (define (s2w:transform-codeblock node mode)
   (let ((lines (cadr node)))
-    (if (string= mode "markdown")
+    (if (eq? mode 'markdown)
 	(cons "```scheme"
 	      (append lines (list "```")))
 	(cons "<enscript=scheme>"
