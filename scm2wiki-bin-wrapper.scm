@@ -20,7 +20,10 @@
 ;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ;; SOFTWARE.
 
-(import chicken scheme)
+(cond-expand
+  (chicken-4 (import chicken scheme))
+  (chicken-5 (import chicken.base chicken.process-context chicken.io)))
+
 (include "scm2wiki.scm")
 
 (define (arg-error)

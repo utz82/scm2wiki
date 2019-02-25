@@ -25,7 +25,9 @@
 ;; TODO: remove/replace [[toc:]] and [[tags: ...] in markdown mode, and/or offer
 ;;       an option to generate toc manually
 
-(use srfi-1 srfi-13 extras irregex)
+(cond-expand
+  (chicken-4 (use srfi-1 srfi-13 extras irregex))
+  (chicken-5 (import chicken.irregex chicken.string chicken.io srfi-1 srfi-13)))
 
 (define s2w:default-prefix ";;;")
 (define s2w:heading-tokens '("==" "#"))
@@ -301,9 +303,10 @@
 
 ;;; Parse a Scheme source file into a list of meta-nodes.
 (define (s2w:parse-source filename prefix mode)
-  (s2w:transform-meta-nodes (s2w:nodify (read-lines filename)
-					prefix)
-			    mode))
+  (s2w:transform-meta-nodes
+   (s2w:nodify (read-lines (open-input-file filename))
+	       prefix)
+   mode))
 
 ;;; Export a list of svnwiki strings to the given file.
 (define (s2w:export-doc filename lines)

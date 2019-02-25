@@ -117,4 +117,3 @@ For now, scm2wiki only handles procedure definitions, and ignores everything els
 * [markdown] automatic toc generation
 * [all] more robust command line arguments parsing
 * [all] support for macro, record, constant definitions etc.
-* [all] Chicken 5 compatibility
