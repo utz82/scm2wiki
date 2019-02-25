@@ -1,6 +1,6 @@
 ;; scm2wiki binary executable wrapper
 
-;; (c) 2019 utz/irrlicht project
+;; (c) 2019 Michael Neidel
 ;;
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;; of this software and associated documentation files (the "Software"), to deal

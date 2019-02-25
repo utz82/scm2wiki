@@ -1,8 +1,8 @@
 ;;; == SCM2WIKI
-;;; a simple documentation tool for Chicken Scheme
+;;; ## a simple documentation tool for Chicken Scheme
 ;;;
 
-;; (c) 2019 utz/irrlicht project
+;; (c) 2019 Michael Neidel
 ;;
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;; of this software and associated documentation files (the "Software"), to deal
@@ -22,13 +22,13 @@
 ;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ;; SOFTWARE.
 
+;; TODO: remove/replace [[toc:]] and [[tags: ...] in markdown mode, and/or offer
+;;       an option to generate toc manually
 
 (use srfi-1 srfi-13 extras irregex)
 
 (define s2w:default-prefix ";;;")
 (define s2w:heading-tokens '("==" "#"))
-(define s2w:codeblock-begin-tokens '("<enscript>" "```"))
-(define s2w:codeblock-end-tokens '("</enscript>" "```"))
 
 ;; Some internal function that will not appear in the output documentation.
 (define (s2w:remove-prefix line prefix)
@@ -47,14 +47,14 @@
 	   (let-values (((search-expr prefix postfix strip-expr)
 			 (if (eq? type 'bold)
 			     (if (eq? mode 'markdown)
-				 (values '(: "{{" (+ (~ "}}")) "}}")
+				 (values (irregex "({{.+?}})")
 					 "**" "**" '(or "{{" "}}"))
-				 (values '(: "**" (+ (~ "**")) "**")
+				 (values (irregex "(\\*\\*.+?\\*\\*)")
 					 "{{" "}}" '("**")))
 			     (if (eq? mode 'markdown)
-				 (values '(: "''" (+ (~ "''")) "''")
+				 (values (irregex "(''.+?'')")
 					 "*" "*" '("''"))
-				 (values '(: "*" (+ (~ "*")) "*")
+				 (values (irregex "(\\*.+?\\*)")
 					 "''" "''" '("*"))))))
 	     (irregex-replace/all
 	      search-expr s
@@ -64,20 +64,81 @@
 			       postfix)))))))
     (replace-fmt-type 'italic (replace-fmt-type 'bold str))))
 
+;;; convert svnwiki hyperlinks to markdown, eg.
+;;; [[#test]]
+;;; [[#test|my test]]
+;;; [[https://call-cc.org]]
+;;; [[https://call-cc.org|Chicken Scheme]]
+(define (s2w:format-links-svn->md str)
+  (irregex-replace/all
+   ;; (\[\[(#|((htt|ft)ps?:\/\/))[^\]]+\]\])
+   '(: "[[" (or "#" (: (or "htt" "ft") "p" (? "s") "://"))
+       (*? nonl) "]]")
+   str
+   (lambda (m)
+     (let ((matchstr (string-split
+		      (string-drop-right
+		       (string-drop (irregex-match-substring m)
+				    2)
+		       2)
+		      "|")))
+       (if (> (length matchstr) 1)
+	   (string-append "[" (cadr matchstr) "](" (car matchstr) ")")
+	   (if (string-prefix? "#" (car matchstr))
+	       (string-append "[" (string-drop (car matchstr) 1)
+			      "](" (car matchstr) ")")
+	       (car matchstr)))))))
+
+;;; convert named markdown hyperlinks to svn
+;;; [my test link](#test)
+;;; [Chicken Scheme](https://call-cc.org)
+(define (s2w:format-named-links-md->svn str)
+  (irregex-replace/all
+   ;; (\[.*?\]\((#|((htt|ft)ps?:\/\/))\S+?\))
+   '(: "[" (*? nonl) "](" (or "#" (: (or "htt" "ft") "p" (? "s") "://"))
+       (*? (~ whitespace)) ")")
+   str
+   (lambda (m)
+     (let ((matchstr (string->list (irregex-match-substring m))))
+       (string-append "[["
+		      (list->string (drop (drop-while (lambda (c)
+							(not (equal? c #\()))
+						      (drop-right matchstr 1))
+					  1))
+		      "|"
+		      (list->string (take-while (lambda (c)
+						  (not (equal? c #\])))
+						(drop matchstr 1)))
+		      "]]")))))
+
+;;; convert anonymous markdown hyperlinks to svn
+;;; https://call-cc.org
+(define (s2w:format-anon-hyperlinks-md->svn str)
+  (irregex-replace/all
+   (irregex "((?<![[(])(htt|ft)ps?://\\S+)")
+   str
+   (lambda (m)
+     (string-append "[[" (irregex-match-substring m) "]]"))))
+
+;;; reformat hyperlinks
+(define (s2w:reformat-hyperlinks str mode)
+  (if (eq? mode 'markdown)
+      (s2w:format-links-svn->md str)
+      (s2w:format-named-links-md->svn
+       (s2w:format-anon-hyperlinks-md->svn str))))
+
 ;;; Check if a source line is a procedure definition
 (define (s2w:proc-define? line)
   (string-prefix-ci? "(define (" line))
 
-(define (s2w:strip-token token-lst line)
-  (if (string-prefix? (car token-lst) line)
-      (string-drop line (string-length (car token-lst)))
-      (s2w:strip-token (cdr token-lst) line)))
-
+;;; Transform a heading node into svnwiki/markdown text.
 (define (s2w:transform-heading node mode)
   (let* ((heading-char? (lambda (char)
 			  (or (equal? char #\=)
 			      (equal? char #\#))))
-	 (heading (s2w:strip-token s2w:heading-tokens (cadr node)))
+	 (heading (string-drop (cadr node)
+			       (if (string-prefix? "==" (cadr node))
+				   2 1)))
 	 (level (+ 1 (length (take-while heading-char?
 					 (string->list heading))))))
     (list (list->string
@@ -87,63 +148,84 @@
 		   (drop-while heading-char? (string->list heading))))
 	  "")))
 
+;;; Transform a text node into svnwiki/markdown text.
 (define (s2w:transform-text node mode)
   (append (map (lambda (line)
-		 (s2w:reformat line mode))
+		 (s2w:reformat-hyperlinks (s2w:reformat line mode) mode))
 	       (cadr node))
 	  (list "")))
 
+;;; Transform a procedure definition node into svnwiki/markdown text.
 (define (s2w:transform-definition node mode)
   (if (eq? mode 'markdown)
       (list "**PROCEDURE:**" "```scheme" (cadr node) "```")
       (list (string-append "<procedure>" (cadr node) "</procedure>"))))
 
+;;; Transform a code example node into svnwiki/markdown text.
+;;; Example:
+;;; <enscript highlight="scheme">
+;;; (cons a '(b c))
+;;; </enscript>
+;;; ```scheme
+;;; (cons d '(e f))
+;;; ```
 (define (s2w:transform-codeblock node mode)
-  (let ((lines (cadr node)))
+  (let ((lines (drop-right (cdr (caadr node)) 1))
+	(language (cadadr node)))
     (if (eq? mode 'markdown)
-	(cons "```scheme"
-	      (append lines (list "```")))
-	(cons "<enscript=scheme>"
-	      (append lines (list "</enscript>"))))))
+	(cons (string-append "```" language)
+	      (append lines (list "```" "")))
+	(cons (string-append "<enscript highlight=\"" language "\">")
+	      (append lines (list "</enscript>" ""))))))
 
-(define (s2w:transform-nodes nodes mode)
-  (concatenate (map (lambda (node)
-		      ((car node) node mode))
-		    nodes)))
-
+;;; Transform meta-nodes into svnwiki/markdown output.
 (define (s2w:transform-meta-nodes meta-nodes mode)
   (concatenate (map (lambda (meta-node)
-		      (s2w:transform-nodes meta-node mode))
+		      (concatenate (map (lambda (node)
+					  ((car node) node mode))
+					meta-node)))
 		    meta-nodes)))
 
-(define (s2w:any-tokens? token-lst line)
-  (not (null? (filter (lambda (token)
-			(string-contains line token))
-		      token-lst))))
+(define (s2w:heading? str prefix)
+  (irregex-search `(: bos ,prefix (*? whitespace) (or "#" "=="))
+		  str))
 
+(define (s2w:codeblock-begin? str prefix)
+  (irregex-search `(: bos ,prefix (*? whitespace) (or "```" "<enscript"))
+		  str))
+
+;; generate a s2w:remove-prefix closure for the given prefix
 (define (s2w:prefix-remove-proc prefix)
   (lambda (line)
     (s2w:remove-prefix line prefix)))
 
+;;; extract a regular comment block
 (define (s2w:extract-regular-comment lines prefix)
   (map (s2w:prefix-remove-proc prefix)
        (take-while (lambda (line)
-		     (and (not (s2w:proc-define? line))
-			  (not (s2w:any-tokens?
-				(append s2w:heading-tokens
-					s2w:codeblock-begin-tokens)
-				line))))
+		     (not (or (s2w:proc-define? line)
+			      (s2w:heading? line prefix)
+			      (s2w:codeblock-begin? line prefix))))
 		   lines)))
 
+;;; extract a code example comment
 (define (s2w:extract-code-comment lines prefix)
-  (let ((comment-head
-	 (take-while
-	  (lambda (line)
-	    (not (s2w:any-tokens? s2w:codeblock-end-tokens
-				  line)))
-	  lines)))
-    (map (s2w:prefix-remove-proc prefix)
-	 (append comment-head (car (drop lines (length comment-head)))))))
+  (let* ((end-token (if (irregex-search "```" (car lines))
+			"```" "</enscript>"))
+	 (lang-match (irregex-search (irregex "((?<=(highlight=\"|```))[^\"]+)")
+				     (car lines)))
+	 (language (if lang-match
+		       (string-trim-right (irregex-match-substring lang-match))
+		       ""))
+	 (comment-head
+	  (cons (car lines)
+		(take-while (lambda (line)
+			      (not (irregex-search end-token line)))
+			    (cdr lines)))))
+    (list (map (s2w:prefix-remove-proc prefix)
+	       (append comment-head
+		       (list (car (drop lines (length comment-head))))))
+	  language)))
 
 ;;; Transform comment blocks into meta-nodes
 (define (s2w:get-subnodes lines prefix)
@@ -155,16 +237,14 @@
 		    (list 1 (list s2w:transform-definition
 				  (s2w:remove-prefix (car lines)
 						     "(define"))))
-		   ((s2w:any-tokens? s2w:heading-tokens
-				     (car lines))
+		   ((s2w:heading? (car lines) prefix)
 		    (list 1 (list s2w:transform-heading
 				  (s2w:remove-prefix (car lines)
 						     prefix))))
-		   ((s2w:any-tokens? s2w:codeblock-begin-tokens
-				     (car lines))
+		   ((s2w:codeblock-begin? (car lines) prefix)
 		    (let ((block (s2w:extract-code-comment lines prefix)))
-		      (list (length block)
-			    (list s2w:transform-codeblock block))))
+		      (list (length (car block))
+		   	    (list s2w:transform-codeblock block))))
 		   (else (let ((block (s2w:extract-regular-comment
 				       lines prefix)))
 			   (list (length block)
@@ -182,6 +262,7 @@
 	      (remove proc-define? nodes))
 	nodes)))
 
+;;; Turn comment blocks into nodes
 (define (s2w:block->nodes comment prefix)
   (s2w:reorder-nodes (s2w:get-subnodes comment prefix)))
 
@@ -199,8 +280,8 @@
 	      (s2w:extract-blocks
 	       (drop lines (length next-block)))))))
 
-;;; Transform source into a list of typed nodes, discarding input that will not
-;;; be processed
+;;; Turn source into a list of meta-nodes, discarding input that will not be
+;;; processed
 (define (s2w:nodify lines prefix)
   (map (lambda (block)
 	 (s2w:block->nodes block prefix))
@@ -232,7 +313,7 @@
 		  (write-line line out))
 		lines))))
 
-;;; Generate a svnwiki file from the given Scheme source.
-;;; If {{prefix}} is omitted, ";;;" will be used.
+;;; Generate a svnwiki or markdown file from the given Scheme source.
+;;; If **mode** is 'markdown, output markdown, else svnwiki.
 (define (s2w:source->doc infile outfile prefix mode)
   (s2w:export-doc outfile (s2w:parse-source infile prefix mode)))
