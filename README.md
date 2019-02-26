@@ -88,6 +88,7 @@ A **line** with *formatting*
 
 <pre>[PROCEDURE]
 <b>(my-fun arg)</b></pre>
+A procedure definition
 
 A plain hyperlink: https://call-cc.org
 A [relative link](#rel) in svnwiki syntax
