@@ -160,7 +160,7 @@
 ;;; Transform a procedure definition node into svnwiki/markdown text.
 (define (s2w:transform-definition node mode)
   (if (eq? mode 'markdown)
-      (list "**PROCEDURE:**" "```scheme" (cadr node) "```")
+      (list "<pre>[PROCEDURE] <b>" (cadr node) "</b></pre>")
       (list (string-append "<procedure>" (cadr node) "</procedure>"))))
 
 ;;; Transform a code example node into svnwiki/markdown text.

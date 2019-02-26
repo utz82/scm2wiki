@@ -86,9 +86,8 @@ A regular line
 A **line** with *formatting*
 **svnwiki** syntax in comments is supported, as is **markdown** syntax
 
-**PROCEDURE**
-```scheme
-(my-fun arg)
+<pre>[PROCEDURE]
+<b>(my-fun arg)</b></pre>
 ```
 
 A plain hyperlink: https://call-cc.org
