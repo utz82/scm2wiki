@@ -21,33 +21,47 @@
 ;; SOFTWARE.
 
 (cond-expand
-  (chicken-4 (import chicken scheme))
-  (chicken-5 (import chicken.base chicken.process-context chicken.io)))
+  (chicken-4 (import chicken scheme)
+	     (use args))
+  (chicken-5 (import chicken.base chicken.process-context chicken.io
+		     chicken.port args)))
 
 (include "scm2wiki.scm")
 
-(define (arg-error)
-  (error "Usage: scm2wiki -i infile [-o outfile] [-p prefix] [-m]"))
+(define cmdline-opts
+  (list (args:make-option (i infile)
+			  #:required "input file name")
+	(args:make-option (o outfile)
+			  #:required "output file name")
+	(args:make-option (p prefix)
+			  #:required "documentation comment prefix string")
+	(args:make-option (m markdown)
+			  #:none "export to Markdown format")
+	(args:make-option (h help)
+			  #:none "display this text" (usage))))
 
-(define (read-flag-arg flag default-val)
-  (if (member flag (argv) string=)
-      (cadr (drop-while (lambda (s) (not (string= s flag)))
-			(argv)))
-      (if (eq? default-val 'error)
-	  (arg-error)
-	  default-val)))
+(define (usage)
+  (with-output-to-port (current-error-port)
+    (lambda ()
+      (print "Usage: " (car (argv)) " -i infile [options...]")
+      (newline)
+      (print (args:usage cmdline-opts))))
+  (exit 1))
 
-(define (parse-args)
-  (if (< (length (argv)) 3)
-      (arg-error)
-      (let* ((mode (if (member "-m" (argv))
-		       'markdown 'svn))
-	     (infile (read-flag-arg "-i" 'error))
-	     (outfile (read-flag-arg
-		       "-o" (string-append infile
-					   (if (eq? mode 'markdown)
-					       ".md" ".wiki"))))
-	     (comment-prefix (read-flag-arg "-p" s2w:default-prefix)))
-	(list infile outfile comment-prefix mode))))
-
-(apply s2w:source->doc (parse-args))
+(receive (options operands)
+    (args:parse (command-line-arguments)
+		cmdline-opts
+		#:unrecognized-proc args:ignore-unrecognized-options)
+  (let ((infile (alist-ref 'i options))
+	(outfile (alist-ref 'o options))
+	(comment-prefix (alist-ref 'p options))
+	(markdown (alist-ref 'm options)))
+    (if infile
+	(s2w:source->doc
+	 infile
+	 (if outfile
+	     outfile
+	     (string-append infile (if markdown ".md" ".wiki")))
+	 (if comment-prefix comment-prefix s2w:default-prefix)
+	 (if markdown 'markdown 'svnwiki))
+	(usage))))
