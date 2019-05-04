@@ -114,5 +114,5 @@ For now, scm2wiki only handles procedure definitions, and ignores everything els
 * [markdown] remove unsupported svnwiki tags
 * [markdown] transform variadic procedure definitions, svnwiki style
 * [markdown] automatic toc generation
-* [all] more robust command line arguments parsing
+* ~~[all] more robust command line arguments parsing~~ *done*
 * [all] support for macro, record, constant definitions etc.
