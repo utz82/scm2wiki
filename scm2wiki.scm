@@ -33,5 +33,6 @@
     (chicken-5 (import scheme (chicken base) (chicken module) (chicken string)
 		       (chicken io) srfi-1 srfi-13 scm-semantics semantics2md)))
 
+  (reexport scm-semantics semantics2md)
 
   ) ;; end module scm2wiki

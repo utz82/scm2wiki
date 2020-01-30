@@ -76,6 +76,6 @@
   (import scheme (chicken base) (chicken module)
 	  (only scm-semantics-impl parse-semantics))
 
-  (reexport scm-semantics-impl)
+  (reexport (only scm-semantics-impl parse-semantics))
 
   ) ;; end module scm-semantics
