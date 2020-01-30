@@ -54,6 +54,7 @@
 		 (as-string (zero-or-more (in char-set:horizontal)))
 		 (is #\newline)))
 
+  ;; TODO multi-line comments with #|...|#
   (define (a-comment prefix)
     (bind (one-or-more (a-comment-line prefix))
 	  (lambda (r)
@@ -73,26 +74,34 @@
 
   (define an-atom
     (any-of a-string a-piped-symbol
-	    (one-or-more (in (char-set-difference char-set:graphic
-						  (char-set #\( #\)))))))
+	    (sequence (is #\#)
+		      (is #\\)
+		      (in (char-set #\( #\))))
+	    (one-or-more (any-of (in (char-set-difference
+				      char-set:graphic (char-set #\( #\))))))))
 
+  ;; TODO quoted symbols, inline comments
   (define a-cons
-    (recursive-parser (sequence (is #\()
-				(one-or-more (any-of an-atom a-cons))
+    (recursive-parser (sequence (maybe (in (char-set #\' #\` #\,)))
+				(is #\()
+				maybe-whitespace
+				(zero-or-more (sequence (any-of an-atom a-cons)
+							maybe-whitespace))
 				(is #\)))))
 
   (define a-sexp (any-of an-atom a-cons))
 
   (define (a-generic-definition comment-prefix input-symbol result-symbol)
     (sequence* ((comment (maybe (a-comment comment-prefix)))
+		(_ (zero-or-more (in char-set:blank)))
 		(_ (char-seq (string-append "(" (symbol->string input-symbol)
 					    " ")))
 		(name (as-string an-atom))
 		(_ maybe-whitespace)
 		(val (as-string a-sexp))
 		(_ maybe-whitespace)
-		(_ (sequence (is #\))
-			     (is #\newline))))
+		(_ (is #\)))
+		(_ maybe-whitespace))
 	       (result `(,result-symbol (name ,name)
 					(value ,val)
 					,comment))))
@@ -107,7 +116,8 @@
     (sequence* ((_ (is #\())
 		(name (as-string an-atom))
 		(_ maybe-whitespace)
-		(rest (as-string (zero-or-more a-sexp)))
+		(rest (as-string (zero-or-more (sequence a-sexp
+							 maybe-whitespace))))
 		(_ (is #\))))
 	       (result (list name
 			     (string-append "("
@@ -126,13 +136,15 @@
 
   (define (a-procedure-definition comment-prefix)
     (sequence* ((comment (maybe (a-comment comment-prefix)))
+		(zero-or-more (in char-set:blank))
 		(_ (char-seq "(define "))
+		(_ maybe-whitespace)
 		(signature a-signature)
 		(_ maybe-whitespace)
 		(body (as-string a-sexp))
 		(_ maybe-whitespace)
-		(_ (sequence (is #\))
-			     (is #\newline))))
+		(_ (is #\)))
+		(_ maybe-whitespace))
 	       (result `(procedure-definition (name ,(car signature))
 					      (signature ,(cadr signature))
 					      (body ,body)
