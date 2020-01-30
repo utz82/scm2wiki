@@ -38,10 +38,12 @@ semantics2md-impl.so: semantics2md-impl.scm
 semantics2md-impl.import.so: semantics2md-impl.so
 	$(CSC) $(IMPORTFLAGS) semantics2md-impl.import.scm
 
-run-tests: scm2wiki
-	$(info $(shell mkdir -p docs))
-	./scm2wiki -i scm2wiki.scm -o docs/scm2wiki.wiki
-	./scm2wiki -m -i scm2wiki.scm -o docs/scm2wiki.md
+run-tests: scm2wiki.so
+	cp -t ./ tests/run.scm && csi run.scm -e
+	-rm run.scm
+# $(info $(shell mkdir -p docs))
+# ./scm2wiki -i scm2wiki.scm -o docs/scm2wiki.wiki
+# ./scm2wiki -m -i scm2wiki.scm -o docs/scm2wiki.md
 
 .PHONY: clean
 
