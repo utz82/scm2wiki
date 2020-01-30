@@ -1,4 +1,4 @@
-;; (c) 2019-2020 Michael Neidel
+;; (c) 2020 Michael Neidel
 ;;
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;; of this software and associated documentation files (the "Software"), to deal
@@ -18,20 +18,15 @@
 ;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ;; SOFTWARE.
 
-;; TODO: remove/replace [[toc:]] and [[tags: ...] in markdown mode, and/or offer
-;;       an option to generate toc manually
-;; TODO: only generate markdown, use markdown-svnwiki to generate svnwiki output
 
-;;; # SCM2WIKI
-;;; A simple in-source documentation tool for Chicken Scheme
-;;;
+;;; # SEMANTICS2MD
+;;; Convert Chicken Scheme semantic expressions to Markdown documentation
 
-(module scm2wiki *
+(module semantics2md
+    ()
+  (import scheme (chicken base) (chicken module)
+	  (only semantics2md-impl semantics->md))
 
-  (cond-expand
-    (chicken-4 (use srfi-1 srfi-13 srfi-14 extras scm-semantics semantics2md))
-    (chicken-5 (import scheme (chicken base) (chicken module) (chicken string)
-		       (chicken io) srfi-1 srfi-13 scm-semantics semantics2md)))
+  (reexport semantics2md-impl)
 
-
-  ) ;; end module scm2wiki
+  ) ;; end module semantics2md

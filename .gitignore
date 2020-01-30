@@ -2,4 +2,6 @@
 .#*
 *~
 docs/
+*.so
+*.import.scm
 scm2wiki

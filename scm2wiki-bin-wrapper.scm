@@ -1,6 +1,6 @@
 ;; scm2wiki binary executable wrapper
 
-;; (c) 2019 Michael Neidel
+;; (c) 2019-2020 Michael Neidel
 ;;
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;; of this software and associated documentation files (the "Software"), to deal
@@ -22,11 +22,9 @@
 
 (cond-expand
   (chicken-4 (import chicken scheme)
-	     (use args))
-  (chicken-5 (import chicken.base chicken.process-context chicken.io
-		     chicken.port args)))
-
-(include "scm2wiki.scm")
+	     (use args scm2wiki))
+  (chicken-5 (import scheme (chicken base) (chicken process-context)
+		     (chicken io) (chicken port) args scm2wiki)))
 
 (define cmdline-opts
   (list (args:make-option (i infile)
@@ -48,20 +46,20 @@
       (print (args:usage cmdline-opts))))
   (exit 1))
 
-(receive (options operands)
-    (args:parse (command-line-arguments)
-		cmdline-opts
-		#:unrecognized-proc args:ignore-unrecognized-options)
-  (let ((infile (alist-ref 'i options))
-	(outfile (alist-ref 'o options))
-	(comment-prefix (alist-ref 'p options))
-	(markdown (alist-ref 'm options)))
-    (if infile
-	(s2w:source->doc
-	 infile
-	 (if outfile
-	     outfile
-	     (string-append infile (if markdown ".md" ".wiki")))
-	 (if comment-prefix comment-prefix s2w:default-prefix)
-	 (if markdown 'markdown 'svnwiki))
-	(usage))))
+;; (receive (options operands)
+;;     (args:parse (command-line-arguments)
+;; 		cmdline-opts
+;; 		#:unrecognized-proc args:ignore-unrecognized-options)
+;;   (let ((infile (alist-ref 'i options))
+;; 	(outfile (alist-ref 'o options))
+;; 	(comment-prefix (alist-ref 'p options))
+;; 	(markdown (alist-ref 'm options)))
+;;     (if infile
+;; 	(s2w:source->doc
+;; 	 infile
+;; 	 (if outfile
+;; 	     outfile
+;; 	     (string-append infile (if markdown ".md" ".wiki")))
+;; 	 (if comment-prefix comment-prefix s2w:default-prefix)
+;; 	 (if markdown 'markdown 'svnwiki))
+;; 	(usage))))
