@@ -27,6 +27,6 @@
   (import scheme (chicken base) (chicken module)
 	  (only semantics2md-impl semantics->md))
 
-  (reexport semantics2md-impl)
+  (reexport (only semantics2md-impl semantics->md))
 
   ) ;; end module semantics2md

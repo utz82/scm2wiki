@@ -52,6 +52,7 @@
 ;;; `    +- field`             | a single field of the record type
 ;;; `      +- default`         | default field value (defstruct types only)
 ;;; `      +- getter`          | getter of the field
+;;; `      +- name`            | field name
 ;;; `      +- setter`          | setter of the field
 ;;; `      +- type-annotation` | type annotation of the field
 ;;; `  +- name`                | name of the record type
@@ -72,7 +73,7 @@
 ;;; that prefix is `;;;`.
 
 (module scm-semantics
-    ()
+    *
   (import scheme (chicken base) (chicken module)
 	  (only scm-semantics-impl parse-semantics))
 
