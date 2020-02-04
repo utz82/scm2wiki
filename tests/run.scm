@@ -61,12 +61,8 @@
 		(car (alist-ref 'value (cdr res)))
 		(car (alist-ref 'comment (cdr res))))))
 
-  (test "destructuring procedure signatures"
-	'("foo" "x y #!optional (z 1)")
-	(parse a-signature "(foo x y #!optional (z 1))"))
-
   (test "destructuring procedure definitions"
-	'(procedure-definition "foo" "A procedure" "x y" "(+ x y)")
+	'(procedure-definition "foo" "A procedure" "(foo x y)" "(+ x y)")
 	(let ((res (parse (a-procedure-definition ";;;")
 			  ";;; A procedure\n (define (foo x y) (+ x y))\n")))
 	  (list (car res)
