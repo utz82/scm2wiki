@@ -50,6 +50,7 @@
 ;;; `  +- constructor`         | record constructor procedure
 ;;; `  +- fields`              | all fields of the record type
 ;;; `    +- field`             | a single field of the record type
+;;; `      +- comment`         | comment describing the field
 ;;; `      +- default`         | default field value (defstruct types only)
 ;;; `      +- getter`          | getter of the field
 ;;; `      +- name`            | field name

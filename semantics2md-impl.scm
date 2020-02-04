@@ -35,80 +35,128 @@
 	  (car maybe-doc)
 	  "")))
 
-  (define (type-annotation->pre definition)
+  (define (type-annotation->string definition)
     (if (alist-ref 'type-annotation (cdr definition))
-	(string-append " <i>"
+	(string-append "type: "
 		       (car (alist-ref 'type (alist-ref 'type-annotation
 							(cdr definition))))
-		       "</i>")
+		       ", ")
 	""))
 
   (define (transform-generic-definition d)
     (string-append "### "
-		   (aspect->string 'name d)
-		   "\n<pre>"
 		   (if (eqv? 'constant-definition (car d))
-		       "[CONSTANT]"
-		       "[VARIABLE]")
-		   " <b>"
+		       "[CONSTANT] "
+		       "[VARIABLE] ")
 		   (aspect->string 'name d)
-		   "</b>"
-		   (type-annotation->pre d)
-		   "</pre>\n"
+		   "\n```Scheme\n"
+		   (aspect->string 'name d)
+		   "  ; "
+		   (type-annotation->string d)
+		   (if (eqv? 'constant-definition (car d))
+		       "value: "
+		       "default: ")
+		   (aspect->string 'value d)
+		   "\n```\n"
+		   (aspect->string 'comment d)))
+
+  (define (transform-procedure-definition d)
+    (string-append "### [PROCEDURE] "
+		   (aspect->string 'name d)
+		   "\n```Scheme\n"
+		   (aspect->string 'signature d)
+		   (if (alist-ref 'type-annotation (cdr d))
+		       (string-append
+			"  ; type: "
+			(car (alist-ref 'type
+					(alist-ref 'type-annotation (cdr d)))))
+		       "")
+		   "\n```\n"
+		   (aspect->string 'comment d)))
+
+  (define (string-max-lengths rows)
+    (map (lambda (pos)
+	   (apply max (map (lambda (row)
+			     (string-length (list-ref row pos)))
+			   rows)))
+	 (iota (length (car rows)))))
+
+  (define (make-md-table header contents)
+    (let* ((_header (map ->string header))
+	   (cell-widths (string-max-lengths (cons _header contents))))
+      (string-intersperse
+       (map (lambda (row)
+	      (string-intersperse (map (lambda (cell cell-width)
+					 (string-pad-right cell cell-width))
+				       row cell-widths)
+				  " | "))
+	    (append (list _header (map (lambda (cell-width)
+					 (make-string cell-width #\-))
+				       cell-widths))
+		    contents))
+       "\n")))
+
+  (define (transform-record-fields record-definition)
+    (let* ((fields (alist-ref 'fields (cdr record-definition)) )
+	   (aspects (filter (lambda (feature)
+			      (any (lambda (f)
+				     (alist-ref feature (cdr f)))
+				   fields))
+			    '(name getter setter default type comment))))
+      (make-md-table aspects
+		     (map (lambda (f)
+			    (map (lambda (a)
+				   (aspect->string a f))
+				 aspects))
+			  fields))))
+
+  (define (transform-record-definition d)
+    (string-append "### [RECORD] "
+		   (aspect->string 'name d)
+		   "\n**[CONSTRUCTOR]**\n```Scheme\n"
+		   (aspect->string 'constructor d)
+		   "\n```\n**[PREDICATE]**\n```Scheme\n"
+		   (aspect->string 'predicate d)
+		   "\n```\n**[IMPLEMENTATION]** `"
+		   (aspect->string 'implementation d)
+		   "`\n**[FIELDS]**\n"
+		   (transform-record-fields d)
+		   "\n"
+		   (aspect->string 'comment d)))
+
+  ;; TODO extract the signature
+  (define (transform-syntax-definition d)
+    (string-append "### [SYNTAX] "
+		   (aspect->string 'name d)
+		   "\n"
 		   (aspect->string 'comment d)))
 
   (define (transform-module-declaration d document-internals)
-    '())
-
-  ;; TODO type
-  (define (transform-procedure-definition d)
-    (string-append "### "
+    (string-append "## MODULE "
 		   (aspect->string 'name d)
-		   "\n<pre>[PROCEDURE] (<b>"
-		   (aspect->string 'name d)
-		   "</b> "
-		   (aspect->string 'signature d)
-		   ")"
-		   (type-annotation->pre d)
-		   "</pre>\n"
-		   (aspect->string 'comment d)))
-
-  (define (transform-record-fields record-definition)
-    (let* ((fields (car (alist-ref 'fields record-definition)) )
-	   (have-feature (lambda (feature)
-			   (any (lambda (f)
-				  (alist-ref feature (cdr f)))
-				fields))))
-      '()))
-
-  ;; TODO ...
-  (define (transform-record-definition d)
-    (string-append "### "
-		   (aspect->string 'name d)
-		   "\n<pre>[RECORD] <b>"
-		   (aspect->string 'name d)
-		   "</b><br>"
-		   "[CONSTRUCTOR] "
-		   (aspect->string 'constructor d)
-		   "<br>[PREDICATE] "
-		   (aspect->string 'predicate d)
-		   "</pre>\n**FIELDS**\n"
-		   ;; ...
+		   "\n"
 		   (aspect->string 'comment d)
-		   ))
-
-  (define (transform-syntax-definition d)
-    '())
+		   "\n"
+		   (string-intersperse
+		    (map (lambda (elem)
+			   (transform-source-element elem
+						     document-internals))
+			 (if document-internals
+			     (alist-ref 'body (cdr d))
+			     ;; TODO filter against exports list
+			     (alist-ref 'body (cdr d))))
+		    "\n\n")))
 
   (define (transform-source-element source-element document-internals)
     (case (car source-element)
       ((comment) (cadr source-element))
-      ((constant-definition) (transform-generic-definition source-element))
-      ((module-declaration) '())
-      ((procedure-definition) '())
-      ((record-definition) '())
-      ((syntax-definition) '())
-      ((variable-definition) (transform-generic-definition source-element))
+      ((constant-definition variable-definition)
+       (transform-generic-definition source-element))
+      ((module-declaration) (transform-module-declaration source-element
+							  document-internals))
+      ((procedure-definition) (transform-procedure-definition source-element))
+      ((record-definition) (transform-record-definition source-element))
+      ((syntax-definition) (transform-syntax-definition source-element))
       (else (error (string-append "Unsupported source element "
 				  (->string (car source-element)))))))
 
@@ -118,11 +166,10 @@
   ;;; included in the resulting documentation, unless **document-internals** is
   ;;; set to `#t`.
   (define (semantics->md source #!optional document-internals)
-    (when (eqv? 'source (car source))
-      (string-intersperse
-       (flatten (map (lambda (elem)
-		       (transform-source-element elem document-internals))
-		     (cdr source)))
-       "\n\n")))
+    (unless (eqv? 'source (car source))
+      (error "Not a semantic source expression."))
+    (map (lambda (elem)
+	   (transform-source-element elem document-internals))
+	 (cdr source)))
 
   ) ;; end module semantics2md-impl

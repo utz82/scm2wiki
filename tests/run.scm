@@ -200,8 +200,9 @@
  "Markdown Generation"
 
  (test "generic definitions"
-       (string-append "### foo\n<pre>[VARIABLE] <b>foo</b>"
-		      " <i>fixnum</i></pre>\nA variable definition")
+       (string-append "### [VARIABLE] foo\n"
+		      "```Scheme\nfoo  ; type: fixnum, default: 1\n"
+		      "```\nA variable definition")
        (transform-generic-definition
 	'(variable-definition (name "foo")
 			      (value "1")
@@ -210,16 +211,84 @@
 			      (comment "A variable definition"))))
 
  (test "procedure definitions"
-       (string-append "### foo\n<pre>[PROCEDURE] "
-		      "(<b>foo</b> x !#optional y)"
-		      " <i>(fixnum #!optional bool) -> . bool</i>"
-		      "</pre>\nA procedure definition")
+       (string-append "### [PROCEDURE] foo\n"
+		      "```Scheme\n(foo x !#optional y)"
+		      "  ; type: (fixnum #!optional bool) -> . bool"
+		      "\n```\nA procedure definition")
        (transform-procedure-definition
 	'(procedure-definition
 	  (name "foo")
 	  (comment "A procedure definition")
-	  (signature "x !#optional y")
+	  (signature "(foo x !#optional y)")
 	  (type-annotation (identifier "foo")
-			   (type "(fixnum #!optional bool) -> . bool"))))))
+			   (type "(fixnum #!optional bool) -> . bool")))))
+
+ (test "table generation"
+       (string-append
+	"name | getter | setter     | type   | comment        \n"
+	"---- | ------ | ---------- | ------ | ---------------\n"
+	"x    | foo-x  | foo-x-set! |        | A comment      \n"
+	"y    | foo-y  |            | fixnum | Another comment")
+       (make-md-table '(name getter setter type comment)
+		      '(("x" "foo-x" "foo-x-set!" "" "A comment")
+			("y" "foo-y" "" "fixnum" "Another comment"))))
+
+ (test "record definitions"
+       (string-append "### [RECORD] foo\n"
+		      "**[CONSTRUCTOR]**\n"
+		      "```Scheme\n(make-foo x y)\n```\n"
+		      "**[PREDICATE]**\n"
+		      "```Scheme\n(foo? x)\n```\n"
+		      "**[IMPLEMENTATION]** `defstruct`\n"
+		      "**[FIELDS]**\n"
+		      "name | getter | setter     | default | comment        \n"
+		      "---- | ------ | ---------- | ------- | ---------------\n"
+		      "x    | foo-x  | foo-x-set! |         |                \n"
+		      "y    | foo-y  |            | 1       | A field comment\n"
+		      "A record definition")
+       (transform-record-definition
+	'(record-definition (name "foo")
+			    (implementation "defstruct")
+			    (comment "A record definition")
+			    (constructor "(make-foo x y)")
+			    (predicate "(foo? x)")
+			    (fields (field (name "x")
+					   (getter "foo-x")
+					   (setter "foo-x-set!"))
+				    (field (name "y")
+					   (default "1")
+					   (getter "foo-y")
+					   (comment "A field comment"))))))
+ (test "syntax definitions"
+       "### [SYNTAX] foo\nA comment"
+       (transform-syntax-definition
+	'(syntax-definition (name "foo") (comment "A comment"))))
+
+ (test "module declarations"
+       (string-append "## MODULE foo\n"
+		      "A module description\n"
+		      "A stand-alone comment\n\n"
+		      "### [VARIABLE] bar\n"
+		      "```Scheme\nbar  ; type: fixnum, default: 1\n```\n"
+		      "A variable definition\n\n"
+		      "### [PROCEDURE] baz\n"
+		      "```Scheme\n(baz x y)"
+		      "\n```\nA procedure definition")
+       (transform-module-declaration
+	'(module-declaration (name "foo")
+			     (comment "A module description")
+			     (exported-symbols "bar")
+			     (body (comment "A stand-alone comment")
+				   (variable-definition
+				    (name "bar")
+				    (type-annotation (identifier "bar")
+						     (type "fixnum"))
+				    (value "1")
+				    (comment "A variable definition"))
+				   (procedure-definition
+				    (name "baz")
+				    (signature "(baz x y)")
+				    (comment "A procedure definition"))))
+	#f)))
 
 (test-exit)
