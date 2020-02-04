@@ -1,12 +1,25 @@
 # scm2wiki
 
-scm2wiki is a simple documentation tool for Scheme, written in [Chicken Scheme](https://call-cc.org/). It generates documentation from comments in a Scheme source file. scm2wiki can output to Chicken's native svnwiki format, as well as (Github flavored) Markdown.
+scm2wiki is a simple in-source documentation tool for Scheme, written in [Chicken Scheme](https://call-cc.org/). It generates documentation from comments in a Scheme source file. scm2wiki can render documentation as (Github flavored) Markdown, as well as Chicken's custom svnwiki format.
 
-Note that there are other, more advanced documentation tools available for Chicken, namely [hahn](https://wiki.call-cc.org/eggref/4/hahn), and [schematic](https://wiki.call-cc.org/eggref/4/schematic). Users of other Scheme implementations might also consider [SchemeDoc](http://people.cs.aau.dk/~normark/schemedoc/).
+Note that there are other, more advanced documentation tools available for Chicken, namely [hahn](https://wiki.call-cc.org/eggref/4/hahn), and [schematic](https://wiki.call-cc.org/eggref/5/schematic). Users of other Scheme implementations might also consider [SchemeDoc](http://people.cs.aau.dk/~normark/schemedoc/).
+
 
 ### Features
 
-Not many, to be honest. scm2wiki understands both svnwiki and Markdown syntax. Any line starting with a special comment prefix (user definable, using ";;;" by default) is considered as input to the converter. The example below documents all the syntax that is supported by scm2wiki.
+scm2wiki uses stand-alone comment blocks and commented definitions in Scheme source code to generate documentation in Markdown or svnwiki format. scm2wiki will only consider comments with a specific, user-defined prefix. By default, the prefix is ";;;". scm2wiki supports Markdown in comments, and optionally transforms Markdown to svnwiki syntax.
+
+scm2wiki can generate documentation for the following definition types:
+
+- variable and procedure definitions using `define`
+- constant definitions using `define-constant`
+- macro definitions using `define-syntax` (limited support)
+- record type definitions using `define-record`, `define-record-type`, and `defstruct`
+
+scm2wiki understands Chicken Scheme's native `module` declarations. By default, it will only generate documentation for symbols that are exported.
+
+There is also some limited support for simple type annotations, including [typed records](https://wiki.call-cc.org/eggref/5/typed-records). However, this feature is not yet complete.
+
 
 ### Usage
 
@@ -15,6 +28,7 @@ Not many, to be honest. scm2wiki understands both svnwiki and Markdown syntax. A
 By default, scm2wiki outputs in svnwiki format. To output to Markdown, use the `-m` flag.
 
 If the `-o` specifier is omitted, the output filename will be post-fixed with ".wiki" or ".md", depending on which output mode is invoked.
+
 
 ### Example
 
@@ -105,14 +119,20 @@ A [named link](https://call-cc.org) in markdown syntax
 
 Feel free to run scm2wiki on it's own source for a more detailed example.
 
-### Limitations
-
-For now, scm2wiki only handles procedure definitions, and ignores everything else.
 
 ### TODO
 
 * [markdown] remove unsupported svnwiki tags
 * [markdown] transform variadic procedure definitions, svnwiki style
 * [markdown] automatic toc generation
+* [all] better support for type annotations
+* [all] better support for macro definitions
 * ~~[all] more robust command line arguments parsing~~ *done*
-* [all] support for macro, record, constant definitions etc.
+* ~~[all] support for macro, record, constant definitions etc.~~ *done*
+
+
+### Contributing
+
+Contributions to scm2wiki are very welcome! See the above TODO list for issues that need help.
+If you're unsure how to contribute or have any questions, feel free to open an
+[issue](https://github.com/utz82/scm2wiki/issues).
