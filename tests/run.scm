@@ -121,7 +121,7 @@
 			   (string-append
 			    ";;; A defstruct\n "
 			    "(defstruct foo\n x ((y 1) : fixnum))\n")))
-	       (fields (car (alist-ref 'fields (cdr res)))))
+	       (fields (alist-ref 'fields (cdr res))))
 	  (list (car res)
 		(car (alist-ref 'comment (cdr res)))
 		(car (alist-ref 'implementation (cdr res)))
@@ -159,11 +159,11 @@
 	'(record-definition (name "foo") (implementation "srfi-9")
 			    (constructor "(make-foo x y)")
 			    (predicate "foo?")
-			    (fields ((field (name "x") (getter "foo-x"))
-				     (field (name "y") (getter "foo-y")
-					    (setter "foo-y-set!")
-					    (type "fixnum")
-					    (comment "a field comment"))))
+			    (fields (field (name "x") (getter "foo-x"))
+				    (field (name "y") (getter "foo-y")
+					   (setter "foo-y-set!")
+					   (type "fixnum")
+					   (comment "a field comment")))
 			    (comment "A SRFI-9 record"))
 	(parse (a-define-record-type ";;;")
 	       (string-append ";;; A SRFI-9 record\n (define-record-type foo\n"

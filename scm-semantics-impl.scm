@@ -260,7 +260,8 @@
 			 (implementation ,implementation)
 			 ,(constructor-generator args name)
 			 (predicate ,(string-append "(" name "? x)"))
-			 (fields ,(generate-getters+setters args name))))))
+			 ,(cons 'fields
+				(generate-getters+setters args name))))))
 
   ;; TODO field comments
   (define (a-defstruct comment-prefix)
@@ -316,7 +317,7 @@
 					   (implementation "srfi-9")
 					   (constructor ,constructor)
 					   (predicate ,predicate)
-					   (fields ,fields)
+					   ,(cons 'fields fields)
 					   (comment ,comment)))))
 
   (define (a-record-definition comment-prefix)
