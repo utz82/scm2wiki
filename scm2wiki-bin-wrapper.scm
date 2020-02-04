@@ -24,7 +24,8 @@
   (chicken-4 (import chicken scheme)
 	     (use args scm2wiki))
   (chicken-5 (import scheme (chicken base) (chicken process-context)
-		     (chicken io) (chicken port) args scm2wiki)))
+		     (chicken io) (chicken port)
+		     args scm-semantics semantics2md)))
 
 (define cmdline-opts
   (list (args:make-option (i infile)

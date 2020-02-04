@@ -5,14 +5,8 @@ ifdef RELEASE
 endif
 IMPORTFLAGS = -s -d0
 
-scm2wiki: scm2wiki-bin-wrapper.scm scm2wiki.import.so
+scm2wiki: scm2wiki-bin-wrapper.scm scm-semantics.import.so semantics2md.import.so
 	$(CSC) scm2wiki-bin-wrapper.scm -b -O3 -o scm2wiki
-
-scm2wiki.so: scm2wiki.scm scm-semantics.import.so semantics2md.import.so
-	$(CSC) $(LIBFLAGS) scm2wiki.scm -j scm2wiki
-
-scm2wiki.import.so: scm2wiki.so
-	$(CSC) $(IMPORTFLAGS) scm2wiki.import.scm
 
 scm-semantics.so: scm-semantics.scm scm-semantics-impl.import.so
 	$(CSC) $(LIBFLAGS) scm-semantics.scm -j scm-semantics
@@ -38,14 +32,11 @@ semantics2md-impl.so: semantics2md-impl.scm
 semantics2md-impl.import.so: semantics2md-impl.so
 	$(CSC) $(IMPORTFLAGS) semantics2md-impl.import.scm
 
-run-tests: scm2wiki.so
+.PHONY: run-tests
+run-tests: scm-semantics.import.so semantics2md.import.so
 	cp -t ./ tests/run.scm && csi run.scm -e
 	-rm run.scm
-# $(info $(shell mkdir -p docs))
-# ./scm2wiki -i scm2wiki.scm -o docs/scm2wiki.wiki
-# ./scm2wiki -m -i scm2wiki.scm -o docs/scm2wiki.md
 
 .PHONY: clean
-
 clean:
 	-rm scm2wiki *.so
