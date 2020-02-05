@@ -86,13 +86,16 @@
 	  (field (name "foo")
 		 (default "1"))
 	  (field (name "foo")
+		 (type "fixnum"))
+	  (field (name "foo")
 		 (default "1")
 		 (type "fixnum"))
 	  #f)
 	(map (lambda (s)
 	       (parse (a-record-field ";;;")
 		      s))
-	     '("foo" "(foo 1)" "((foo 1) : fixnum)" "(not a record field)")))
+	     '("foo" "(foo 1)" "(foo : fixnum)" "((foo 1) : fixnum)"
+	       "(not a record field)")))
 
   (test "generate getters/setters"
 	'((field (name "bar")
@@ -114,7 +117,7 @@
 	 "foo"))
 
   (test "destructuring defstruct record definition"
-	`(record-definition "A defstruct" "defstruct" "(make-foo x: x1 y: y1)"
+	'(record-definition "A defstruct" "defstruct" "(make-foo x: x1 y: y1)"
 			    "(foo? x)" "x" "foo-x" "foo-x-set!"
 			    "y" "foo-y" "foo-y-set!" "1" "fixnum")
 	(let* ((res (parse (a-defstruct ";;;")
@@ -136,7 +139,27 @@
 		(car (alist-ref 'default (cdadr fields)))
 		(car (alist-ref 'type (cdadr fields))))))
 
-  ;; TODO destructuring define-record
+  (test "destructuring define-record definition"
+	'(record-definition "A define-record" "define-record" "(make-foo x y)"
+			    "(foo? x)" "x" "foo-x" "foo-x-set!"
+			    "y" "foo-y" "foo-y-set!" "fixnum")
+	(let* ((res (parse (a-define-record ";;;")
+			   (string-append
+			    ";;; A define-record\n "
+			    "(define-record foo x (y : fixnum))\n")))
+	       (fields (alist-ref 'fields (cdr res))))
+	  (list (car res)
+		(car (alist-ref 'comment (cdr res)))
+		(car (alist-ref 'implementation (cdr res)))
+		(car (alist-ref 'constructor (cdr res)))
+		(car (alist-ref 'predicate (cdr res)))
+		(car (alist-ref 'name (cdar fields)))
+		(car (alist-ref 'getter (cdar fields)))
+		(car (alist-ref 'setter (cdar fields)))
+		(car (alist-ref 'name (cdadr fields)))
+		(car (alist-ref 'getter (cdadr fields)))
+		(car (alist-ref 'setter (cdadr fields)))
+		(car (alist-ref 'type (cdadr fields))))))
 
   (test "destructuring srfi-9 record fields"
 	'((field (name "x")

@@ -209,7 +209,7 @@
 			(cons 'field
 			      (append (if (pair? name/default)
 					  name/default
-					  (list 'name name/default))
+					  (list (list 'name name/default)))
 				      (filter-map-results '(type comment)
 							  `(,type ,comment))))))
 	    (bind a-field-name+default
@@ -263,18 +263,21 @@
 			 ,(cons 'fields
 				(generate-getters+setters args name))))))
 
-  ;; TODO field comments
   (define (a-defstruct comment-prefix)
     (a-generic-record-definition comment-prefix "defstruct"
 				 generate-defstruct-constructor))
 
-  ;; TODO field comments
   (define (a-define-record comment-prefix)
-    (a-generic-record-definition comment-prefix "define-record"
-				 (lambda (args name)
-				   (string-append "(make-" name " "
-						  (string-intersperse args)
-						  ")"))))
+    (a-generic-record-definition
+     comment-prefix "define-record"
+     (lambda (args name)
+       (list 'constructor
+	     (string-append "(make-" name " "
+			    (string-intersperse
+			     (map (lambda (field)
+				    (car (alist-ref 'name (cdr field))))
+				  args))
+			    ")")))))
 
   (define (a-srfi-9-field comment-prefix)
     (sequence* ((_ (is #\())
