@@ -397,9 +397,6 @@
 				       (a-source-element comment-prefix)))
 			      (sequence maybe-whitespace end-of-input))
 		 (lambda (r)
-		   (display r)
-		   (newline)
-		   (newline)
 		   (result (cons 'source (filter-source-elements r)))))
 	   source))
 
