@@ -193,15 +193,25 @@
 	       (result `((name ,name)
 			 (default ,default)))))
 
+  (define (replace-newlines str)
+    (display str)
+    (newline)
+    (display (string? str))
+    (newline)
+    (string-translate str #\newline #\space))
+
   ;; name-only, name+default, name+type-anno, name+default+type-anno
   ;; TODO still not handling all comments
   (define (a-record-field comment-prefix)
     (any-of (sequence* ((name (as-string an-atom))
 			(_ (zero-or-more (in char-set:blank)))
-			(comment (maybe (a-comment-line ";;;"))))
-		       (result (cons 'field
-				     (filter-map-results '(name comment)
-							 `(,name ,comment)))))
+			(comment (maybe (a-comment comment-prefix))))
+		       (result
+			(cons 'field
+			      (filter-map-results
+			       '(name comment)
+			       `(,name ,(and comment
+					     (replace-newlines comment)))))))
 	    (sequence* ((_ (is #\())
 			(_ maybe-whitespace)
 			(name/default (any-of (as-string an-atom)
@@ -213,17 +223,27 @@
 			(_ maybe-whitespace)
 			(_ (is #\)))
 			(_ maybe-whitespace)
-			(comment (maybe (a-comment-line comment-prefix))))
+			(comment (maybe (a-comment comment-prefix))))
 		       (result
 			(cons 'field
 			      (append (if (pair? name/default)
 					  name/default
 					  (list (list 'name name/default)))
-				      (filter-map-results '(type comment)
-							  `(,type ,comment))))))
-	    (bind a-field-name+default
-		  (lambda (r)
-		    (result (cons 'field r))))))
+				      (filter-map-results
+				       '(type comment)
+				       `(,type
+					 ,(and comment
+					       (replace-newlines comment))))))))
+	    (sequence* ((name+default a-field-name+default)
+			(_ maybe-whitespace)
+			(comment (maybe (a-comment comment-prefix))))
+		       (result (cons 'field
+				     (if comment
+					 (append name+default
+						 `((comment
+						    ,(replace-newlines
+						      comment))))
+					 name+default))))))
 
   (define (generate-getters+setters fields record-name)
     (map (lambda (field)
