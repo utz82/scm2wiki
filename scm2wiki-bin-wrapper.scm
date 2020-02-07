@@ -29,13 +29,15 @@
 
 (define cmdline-opts
   (list (args:make-option (i infile)
-			  #:required "input file name")
+			  #:optional "input file name")
 	(args:make-option (o outfile)
-			  #:required "output file name")
+			  #:optional "output file name")
 	(args:make-option (p prefix)
-			  #:required "documentation comment prefix string")
-	(args:make-option (m markdown)
-			  #:none "export to Markdown format")
+			  #:optional "documentation comment prefix string")
+	(args:make-option (svn)
+			  #:none "export to svnwiki format")
+	(args:make-option (doc-internals)
+			  #:none "document non-exported symbols in modules")
 	(args:make-option (h help)
 			  #:none "display this text" (usage))))
 
@@ -47,20 +49,21 @@
       (print (args:usage cmdline-opts))))
   (exit 1))
 
-;; (receive (options operands)
-;;     (args:parse (command-line-arguments)
-;; 		cmdline-opts
-;; 		#:unrecognized-proc args:ignore-unrecognized-options)
-;;   (let ((infile (alist-ref 'i options))
-;; 	(outfile (alist-ref 'o options))
-;; 	(comment-prefix (alist-ref 'p options))
-;; 	(markdown (alist-ref 'm options)))
-;;     (if infile
-;; 	(s2w:source->doc
-;; 	 infile
-;; 	 (if outfile
-;; 	     outfile
-;; 	     (string-append infile (if markdown ".md" ".wiki")))
-;; 	 (if comment-prefix comment-prefix s2w:default-prefix)
-;; 	 (if markdown 'markdown 'svnwiki))
-;; 	(usage))))
+(receive (options operands)
+    (args:parse (command-line-arguments)
+		cmdline-opts
+		#:unrecognized-proc args:ignore-unrecognized-options)
+  (let ((infile (alist-ref 'i options))
+	(outfile (alist-ref 'o options))
+	(comment-prefix (alist-ref 'p options)))
+    (write-string
+     (semantics->md
+      (parse-semantics (read-string #f
+				    (or (and infile
+					     (open-input-file infile text:))
+					(current-input-port)))
+		       comment-prefix: (or comment-prefix ";;;"))
+      (alist-ref 'doc-internals options))
+     (or (and outfile
+	      (open-output-file outfile text:))
+	 (current-output-port)))))
