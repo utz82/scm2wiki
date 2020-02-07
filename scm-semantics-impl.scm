@@ -44,11 +44,6 @@
 		(_ (is #\newline)))
 	       (result 'blank-line)))
 
-  (define a-generic-line
-    (sequence* ((_ (one-or-more (in char-set:horizontal)))
-		(_ (is #\newline)))
-	       (result 'generic-line)))
-
   (define (comment-prefix p)
     (enclosed-by (zero-or-more (in char-set:blank))
 		 (char-seq p)
@@ -68,8 +63,9 @@
 
   (define a-string
     (sequence (is #\")
-	      (zero-or-more (in (char-set-difference char-set:printing
-						     (char-set #\"))))
+	      (zero-or-more (any-of (char-seq "\\\"")
+				    (in (char-set-difference char-set:printing
+							     (char-set #\")))))
 	      (is #\")))
 
   (define a-piped-symbol
@@ -78,6 +74,7 @@
 						    (char-set #\|))))
 	      (is #\|)))
 
+  ;; TODO this is not entirely correct: anything following a ; is not an atom
   (define an-atom
     (any-of a-string a-piped-symbol
 	    (sequence (is #\#)
@@ -95,7 +92,17 @@
 							maybe-whitespace))
 				(is #\)))))
 
-  (define a-sexp (any-of an-atom a-cons))
+  (define a-sexp (any-of a-cons an-atom))
+
+  (define a-generic-line
+    (bind (any-of (sequence maybe-whitespace a-cons)
+		  (followed-by (sequence maybe-whitespace (is #\;)
+					 (zero-or-more
+					  (in char-set:horizontal)))
+			       (any-of end-of-input (is #\newline))))
+	  (lambda (r)
+	    (result 'generic-line))))
+
 
   ;; TODO alternative syntax, define-type
   (define a-type-annotation
@@ -144,12 +151,13 @@
 
   (define (a-procedure-definition comment-prefix)
     (sequence* ((comment (maybe (a-comment comment-prefix)))
-		(zero-or-more (in char-set:blank))
+		(_ (zero-or-more (in char-set:blank)))
 		(_ (char-seq "(define"))
 		(_ (one-or-more (in char-set:whitespace)))
 		(signature a-signature)
 		(_ maybe-whitespace)
-		(body (as-string a-sexp))
+		(body (as-string (one-or-more (sequence a-sexp
+							maybe-whitespace))))
 		(_ maybe-whitespace)
 		(_ (is #\)))
 		(_ maybe-whitespace))
@@ -302,7 +310,6 @@
 				     (list name getter setter type-annotation
 					   comment))))))
 
-  ;; TODO is fields expr consistent with defstruct
   (define (a-define-record-type comment-prefix)
     (sequence* ((comment (maybe (a-comment comment-prefix)))
 		(_ (zero-or-more (in char-set:blank)))
@@ -328,21 +335,22 @@
 	    (a-define-record comment-prefix)
 	    (a-define-record-type comment-prefix)))
 
-  (define (source-elements comment-prefix)
-    (bind (one-or-more (any-of (a-constant-definition comment-prefix)
-			       (a-variable-definition comment-prefix)
-			       (a-procedure-definition comment-prefix)
-			       (a-record-definition comment-prefix)
-			       (a-syntax-definition comment-prefix)
-			       (bind (a-comment comment-prefix)
-				     (lambda (r)
-				       (result `(comment ,r))))
-			       a-blank-line
-			       a-generic-line))
-	  (lambda (r)
-	    (result (remove (lambda (e)
-			      (memq e '(blank-line generic-line)))
-			    r)))))
+  (define (a-source-element comment-prefix)
+    (any-of (a-constant-definition comment-prefix)
+	    (a-variable-definition comment-prefix)
+	    (a-procedure-definition comment-prefix)
+	    (a-record-definition comment-prefix)
+	    (a-syntax-definition comment-prefix)
+	    (bind (a-comment comment-prefix)
+		  (lambda (r)
+		    (result `(comment ,r))))
+	    a-blank-line
+	    a-generic-line))
+
+  (define (filter-source-elements source-elements)
+    (remove (lambda (e)
+	      (memq e '(blank-line generic-line)))
+	    source-elements))
 
   (define (extract-exported-symbols source-elements)
     (filter-map (lambda (e)
@@ -354,7 +362,7 @@
 		       (car (alist-ref 'name (cdr e)))))
 	 source-elements))
 
-  ;; TODO reexports, replace * in exports
+  ;; TODO reexports
   (define (a-module-declaration comment-prefix)
     (sequence* ((comment (maybe (a-comment ";;;")))
 		(_ (zero-or-more (in char-set:blank)))
@@ -365,9 +373,11 @@
 		(exports (as-string (any-of (is #\*)
 					    a-cons)))
 		(_ maybe-whitespace)
-		(body (source-elements comment-prefix))
-		(_ (is #\)))
-		(_ (any-of maybe-whitespace a-generic-line)))
+		(body (bind (one-or-more (a-source-element comment-prefix))
+			    (lambda (r)
+			      (result (filter-source-elements r)))))
+		(_ maybe-whitespace)
+		(_ (is #\))))
 	       (result (cons 'module-declaration
 			     (filter-map-results
 			      '(name comment exported-symbols body)
@@ -384,10 +394,13 @@
 			   #!optional (comment-prefix default-comment-prefix))
     (parse (bind (followed-by (one-or-more
 			       (any-of (a-module-declaration comment-prefix)
-				       (source-elements comment-prefix)))
+				       (a-source-element comment-prefix)))
 			      (sequence maybe-whitespace end-of-input))
 		 (lambda (r)
-		   (result (cons 'source r))))
+		   (display r)
+		   (newline)
+		   (newline)
+		   (result (cons 'source (filter-source-elements r)))))
 	   source))
 
   ) ;; end module scm-semantics-impl

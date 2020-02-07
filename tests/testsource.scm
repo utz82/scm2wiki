@@ -48,7 +48,7 @@
   (define-record-type
       blurp
     (make-blurp x
-		y)
+  		y)
     blurp?
 
     (x

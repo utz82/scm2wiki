@@ -216,7 +216,7 @@
 			      "   ;;; A variable definition\n"
 			      "   (: bar fixnum)\n"
 			      "   (define bar 1)"
-			      "  ) ;; closing comment")))
+			      "  ) ;; closing comment\n")))
   ))
 
 (test-group
