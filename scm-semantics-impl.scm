@@ -161,10 +161,11 @@
 		(_ maybe-whitespace)
 		(_ (is #\)))
 		(_ maybe-whitespace))
-	       (result `(procedure-definition (name ,(car signature))
-					      (signature ,(cadr signature))
-					      (body ,body)
-					      (comment ,comment)))))
+	       (result (cons 'procedure-definition
+			     (filter-map-results '(name signature body comment)
+						 (list (car signature)
+						       (cadr signature)
+						       body comment))))))
   ;; TODO signatures
   (define (a-syntax-definition comment-prefix)
     (sequence* ((comment (maybe (a-comment comment-prefix)))
@@ -177,9 +178,9 @@
 		(_ maybe-whitespace)
 		(_ (sequence (is #\))))
 		(_ maybe-whitespace))
-	       (result `(syntax-definition (name ,name)
-					   (body ,body)
-					   (comment ,comment)))))
+	       (result (cons 'syntax-definition
+			     (filter-map-results '(name body comment)
+						 (list name body comment))))))
 
   (define a-field-name+default
     (sequence* ((_ (is #\())
@@ -323,12 +324,13 @@
 		(_ (one-or-more (in char-set:whitespace)))
 		(fields (one-or-more (a-srfi-9-field comment-prefix)))
 		(_ (is #\))))
-	       (result `(record-definition (name ,name)
-					   (implementation "srfi-9")
-					   (constructor ,constructor)
-					   (predicate ,predicate)
-					   ,(cons 'fields fields)
-					   (comment ,comment)))))
+	       (result (cons 'record-definition
+			     (filter-map-results '(name implementation
+							constructor predicate
+							fields comment)
+						 (list name "srfi-9" constructor
+						       predicate fields
+						       comment))))))
 
   (define (a-record-definition comment-prefix)
     (any-of (a-defstruct comment-prefix)
