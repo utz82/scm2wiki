@@ -168,8 +168,10 @@
   (define (semantics->md source #!optional document-internals)
     (unless (eqv? 'source (car source))
       (error "Not a semantic source expression."))
-    (map (lambda (elem)
-	   (transform-source-element elem document-internals))
-	 (cdr source)))
+    (string-intersperse
+     (map (lambda (elem)
+	    (transform-source-element elem document-internals))
+	  (cdr source))
+     "\n"))
 
   ) ;; end module semantics2md-impl
