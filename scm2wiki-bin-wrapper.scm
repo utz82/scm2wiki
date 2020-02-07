@@ -29,11 +29,11 @@
 
 (define cmdline-opts
   (list (args:make-option (i infile)
-			  #:optional "input file name")
+			  #:required "input file name")
 	(args:make-option (o outfile)
-			  #:optional "output file name")
+			  #:required "output file name")
 	(args:make-option (p prefix)
-			  #:optional "documentation comment prefix string")
+			  #:required "documentation comment prefix string")
 	(args:make-option (svn)
 			  #:none "export to svnwiki format")
 	(args:make-option (doc-internals)
@@ -62,8 +62,9 @@
 				    (or (and infile
 					     (open-input-file infile text:))
 					(current-input-port)))
-		       comment-prefix: (or comment-prefix ";;;"))
+		       (or comment-prefix ";;;"))
       (alist-ref 'doc-internals options))
+     #f
      (or (and outfile
 	      (open-output-file outfile text:))
 	 (current-output-port)))))
