@@ -26,6 +26,9 @@
   (import scheme (chicken base) (chicken module) (chicken string)
 	  srfi-1 srfi-13)
 
+  (define (wrap-in-code-block str)
+    (string-append "\n```Scheme\n" str "\n```\n\n"))
+
   ;; Extract documentation for the aspect given by **aspect-key** from the
   ;; **semantic** source element. Returns an empty string if **semantic** does
   ;; not contain the given aspect.
@@ -84,16 +87,19 @@
   (define (make-md-table header contents)
     (let* ((_header (map ->string header))
 	   (cell-widths (string-max-lengths (cons _header contents))))
-      (string-intersperse
-       (map (lambda (row)
-	      (string-intersperse (map (lambda (cell cell-width)
-					 (string-pad-right cell cell-width))
-				       row cell-widths)
-				  " | "))
-	    (append (list _header (map (lambda (cell-width)
-					 (make-string cell-width #\-))
-				       cell-widths))
-		    contents))
+      (string-append
+       "\n"
+       (string-intersperse
+	(map (lambda (row)
+	       (string-intersperse (map (lambda (cell cell-width)
+					  (string-pad-right cell cell-width))
+					row cell-widths)
+				   " | "))
+	     (append (list _header (map (lambda (cell-width)
+					  (make-string cell-width #\-))
+					cell-widths))
+		     contents))
+	"\n")
        "\n")))
 
   (define (transform-record-fields record-definition)
@@ -113,13 +119,13 @@
   (define (transform-record-definition d)
     (string-append "### [RECORD] "
 		   (aspect->string 'name d)
-		   "\n**[CONSTRUCTOR]**\n```Scheme\n"
-		   (aspect->string 'constructor d)
-		   "\n```\n**[PREDICATE]**\n```Scheme\n"
-		   (aspect->string 'predicate d)
-		   "\n```\n**[IMPLEMENTATION]** `"
+		   "\n**[CONSTRUCTOR]**\n"
+		   (wrap-in-code-block (aspect->string 'constructor d))
+		   "**[PREDICATE]**\n"
+		   (wrap-in-code-block (aspect->string 'predicate d))
+		   "**[IMPLEMENTATION]** `"
 		   (aspect->string 'implementation d)
-		   "`\n**[FIELDS]**\n"
+		   "`\n\n**[FIELDS]**\n"
 		   (transform-record-fields d)
 		   "\n"
 		   (aspect->string 'comment d)))
