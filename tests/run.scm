@@ -266,10 +266,10 @@
  (test "table generation"
        (string-append
 	"\n"
-	"name | getter | setter     | type   | comment        \n"
-	"---- | ------ | ---------- | ------ | ---------------\n"
-	"x    | foo-x  | foo-x-set! |        | A comment      \n"
-	"y    | foo-y  |            | fixnum | Another comment\n")
+	"name | getter  | setter       | type     | comment          \n"
+	"---- | ------- | ------------ | -------- | -----------------\n"
+	"`x`  | `foo-x` | `foo-x-set!` |          | `A comment`      \n"
+	"`y`  | `foo-y` |              | `fixnum` | `Another comment`\n")
        (make-md-table '(name getter setter type comment)
 		      '((x (name . "x")
 			   (getter . "foo-x")
@@ -286,10 +286,10 @@
 		      "**predicate:** `(foo? x)`  \n"
 		      "**implementation:** `defstruct`  \n"
 		      "**fields:**\n\n"
-		      "name | getter | setter     | default | comment        \n"
-		      "---- | ------ | ---------- | ------- | ---------------\n"
-		      "x    | foo-x  | foo-x-set! |         |                \n"
-		      "y    | foo-y  |            | 1       | A field comment\n"
+		      "name | getter  | setter       | default | comment          \n"
+		      "---- | ------- | ------------ | ------- | -----------------\n"
+		      "`x`  | `foo-x` | `foo-x-set!` |         |                  \n"
+		      "`y`  | `foo-y` |              | `1`     | `A field comment`\n"
 		      "\nA record definition\n")
        (transform-record-definition
 	'(record-definition (name . "foo")

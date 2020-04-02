@@ -94,7 +94,10 @@
 	   (md-header (map ->string aspects))
 	   (md-body (map (lambda (c)
 			   (map (lambda (a)
-				  (aspect->string a c))
+				  (let ((astring (aspect->string a c)))
+				    (if (string-null? astring)
+					""
+					(make-inline-code-block astring))))
 				aspects))
 			 contents))
 	   (cell-widths (string-max-lengths (cons md-header md-body))))
