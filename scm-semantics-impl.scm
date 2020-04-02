@@ -30,9 +30,7 @@
 
   (define (filter-map-results symbols results)
     (filter-map (lambda (sym val)
-		  (and val (if (pair? val)
-			       (cons sym val)
-			       (list sym val))))
+		  (and val (cons sym val)))
 		symbols results))
 
   (define char-set:horizontal (char-set-union char-set:graphic char-set:blank))
@@ -113,7 +111,7 @@
 		(_ (is #\)))
 		(_ (zero-or-more (in char-set:blank)))
 		(_ (is #\newline)))
-	       (result `((identifier ,identifier) (type ,annotation)))))
+	       (result `((identifier . ,identifier) (type . ,annotation)))))
 
   ;;; TODO output type-annotation
   (define (a-generic-definition comment-prefix input-symbol result-symbol)
@@ -147,7 +145,7 @@
 		(args (as-string (zero-or-more (sequence a-sexp
 							 maybe-whitespace))))
 		(_ (is #\))))
-	       (result (list name (string-append "(" name " " args ")")))))
+	       (result (cons name (string-append "(" name " " args ")")))))
 
   (define (a-procedure-definition comment-prefix)
     (sequence* ((comment (maybe (a-comment comment-prefix)))
@@ -164,7 +162,7 @@
 	       (result (cons 'procedure-definition
 			     (filter-map-results '(name signature body comment)
 						 (list (car signature)
-						       (cadr signature)
+						       (cdr signature)
 						       body comment))))))
   ;; TODO signatures
   (define (a-syntax-definition comment-prefix)
@@ -190,8 +188,8 @@
 		(default (as-string a-sexp))
 		(_ maybe-whitespace)
 		(_ (is #\))))
-	       (result `((name ,name)
-			 (default ,default)))))
+	       (result `((name . ,name)
+			 (default . ,default)))))
 
   (define (replace-newlines str)
     (display str)
@@ -228,7 +226,7 @@
 			(cons 'field
 			      (append (if (pair? name/default)
 					  name/default
-					  (list (list 'name name/default)))
+					  `((name . ,name/default)))
 				      (filter-map-results
 				       '(type comment)
 				       `(,type
@@ -247,24 +245,22 @@
 
   (define (generate-getters+setters fields record-name)
     (map (lambda (field)
-	   (append field `((getter
+	   (append field `((getter .
 			    ,(string-append record-name "-"
-					    (car (alist-ref 'name
-							    (cdr field)))))
-			   (setter
+					    (alist-ref 'name (cdr field))))
+			   (setter .
 			    ,(string-append record-name "-"
-					    (car (alist-ref 'name
-							    (cdr field)))
+					    (alist-ref 'name (cdr field))
 					    "-set!")))))
 	 fields))
 
   (define (generate-defstruct-constructor fields record-name)
-    (list 'constructor
+    (cons 'constructor
 	  (string-append
 	   "(make-" record-name " "
 	   (string-intersperse
 	    (map (lambda (field)
-		   (let ((field-name (car (alist-ref 'name (cdr field)))))
+		   (let ((field-name (alist-ref 'name (cdr field))))
 		     (string-append field-name ": " field-name "1")))
 		 fields))
 	   ")")))
@@ -284,11 +280,11 @@
 		(_ (is #\)))
 		(_ maybe-whitespace))
 	       (result `(record-definition
-			 (comment,comment)
-			 (name ,name)
-			 (implementation ,implementation)
+			 (comment . ,comment)
+			 (name . ,name)
+			 (implementation . ,implementation)
 			 ,(constructor-generator args name)
-			 (predicate ,(string-append "(" name "? x)"))
+			 (predicate . ,(string-append "(" name "? x)"))
 			 ,(cons 'fields
 				(generate-getters+setters args name))))))
 
@@ -300,12 +296,11 @@
     (a-generic-record-definition
      comment-prefix "define-record"
      (lambda (args name)
-       (list 'constructor
+       (cons 'constructor
 	     (string-append "(make-" name " "
 			    (string-intersperse
-			     (map (lambda (field)
-				    (car (alist-ref 'name (cdr field))))
-				  args))
+			     (map (cute alist-ref 'name <>)
+				  (map cdr args)))
 			    ")")))))
 
   (define (a-srfi-9-field comment-prefix)
@@ -357,15 +352,76 @@
 	    (a-define-record comment-prefix)
 	    (a-define-record-type comment-prefix)))
 
+  (define a-superclass-list
+    (enclosed-by (is #\()
+		 (zero-or-more (sequence* ((sc (as-string an-atom))
+					   (_ maybe-whitespace))
+					  (result sc)))
+		 (is #\))))
+
+  (define (parse-slot-options opts)
+    (if (null? opts)
+	'()
+	(cons (cons (string->symbol (string-drop-right (car opts) 1))
+		    (cadr opts))
+	      (parse-slot-options (drop opts 2)))))
+
+  (define (a-class-slotspec comment-prefix)
+    (any-of (bind (as-string an-atom)
+		  (lambda (r)
+		    (result `(slot (name . ,r)))))
+	    (sequence* ((_ (is #\())
+			(name (as-string an-atom))
+			(_ (one-or-more (in char-set:whitespace)))
+			(initform (as-string a-sexp))
+			(_ maybe-whitespace)
+			(_ (is #\))))
+		       (result `(slot (name . ,name)
+				      (initform . ,initform))))
+	    (sequence* ((_ (is #\())
+			(name (as-string an-atom))
+			(_ (one-or-more (in char-set:whitespace)))
+			(slot-options (one-or-more
+				       (sequence* ((s (as-string a-sexp))
+						   (_ maybe-whitespace))
+						  (result s))))
+			(_ (is #\))))
+		       (result (cons 'slot (append `((name . ,name))
+						   (parse-slot-options
+						    slot-options)))))))
+
+  (define (a-class-definition comment-prefix)
+    (sequence* ((comment (maybe (a-comment comment-prefix)))
+		(_ (zero-or-more (in char-set:blank)))
+		(_ (char-seq "(define-class"))
+		(_ maybe-whitespace)
+		(name (as-string an-atom))
+		(_ maybe-whitespace)
+		(superclasses a-superclass-list)
+		(_ maybe-whitespace)
+		(slots (enclosed-by (is #\()
+				    (one-or-more
+				     (sequence* ((slot (a-class-slotspec
+							comment-prefix))
+						 (_ maybe-whitespace))
+						(result slot)))
+				    (is #\))))
+		(_ (is #\))))
+	       (result (cons 'class-definition
+			     (filter-map-results
+			      '(name superclasses slots comment)
+			      (list name superclasses slots comment))))))
+
   (define (a-source-element comment-prefix)
     (any-of (a-constant-definition comment-prefix)
 	    (a-variable-definition comment-prefix)
 	    (a-procedure-definition comment-prefix)
 	    (a-record-definition comment-prefix)
 	    (a-syntax-definition comment-prefix)
+	    (a-class-definition comment-prefix)
 	    (bind (a-comment comment-prefix)
 		  (lambda (r)
-		    (result `(comment ,r))))
+		    (result `(comment . ,r))))
 	    a-blank-line
 	    a-generic-line))
 
@@ -381,7 +437,7 @@
 						   procedure-definition
 						   record-definition
 						   syntax-definition))
-		       (car (alist-ref 'name (cdr e)))))
+		       (alist-ref 'name (cdr e))))
 	 source-elements))
 
   ;; TODO reexports

@@ -6,7 +6,7 @@
     *
 
   (import scheme (chicken base) (chicken module) (chicken string)
-	  defstruct)
+	  coops defstruct)
 
   ;;; A stand-alone comment
   ;;; stretching multiple lines
@@ -58,5 +58,15 @@
        blurp-y-set!)
 
     ) ;; a hidden comment
+
+  ;;; A coops class type defintion.
+  (define-class <myclass> ()
+    (foo
+     (bar 0)
+     (baz initform: 0 accessor: myclass-baz)))
+
+  ;;; A coops class definition derived from `<myclass>`.
+  (define-class <mysubclass> (<myclass>)
+    (foobar))
 
   ) ;; end module foo

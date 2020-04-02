@@ -29,6 +29,18 @@
 ;;; keyword                    | meaning
 ;;; ---------------------------|---------------------------------------
 ;;; `source`                   | Scheme source code
+;;; `+- class-definition`      | coops class type definition
+;;; `  +- comment`             |
+;;; `  +- name`                |
+;;; `  +- superclasses`        |
+;;; `  +- slots`               |
+;;; `    +- slot`              |
+;;; `      +- name`            |
+;;; `      +- initform`        |
+;;; `      +- accessor`        |
+;;; `      +- getter`          |
+;;; `      +- setter`          |
+;;; `+- class-method`          | specialization of a generic procedure
 ;;; `+- comment`               | stand-alone comment block
 ;;; `+- constant-definition`   | constant definition using `define-constant`
 ;;; `  +- comment`             | comment describing the constant

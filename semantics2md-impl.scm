@@ -26,23 +26,25 @@
   (import scheme (chicken base) (chicken module) (chicken string)
 	  srfi-1 srfi-13)
 
-  (define (wrap-in-code-block str)
+  (define (make-code-block str)
     (string-append "\n```Scheme\n" str "\n```\n\n"))
 
-  ;; Extract documentation for the aspect given by **aspect-key** from the
-  ;; **semantic** source element. Returns an empty string if **semantic** does
+  (define (make-inline-code-block str)
+    (string-append "`"
+		   (string-translate str #\newline #\space)
+		   "`"))
+
+  ;; Extract documentation for the aspect given by `aspect-key` from the
+  ;; **semantic** source element. Returns an empty string if `semantic` does
   ;; not contain the given aspect.
   (define (aspect->string aspect-key semantic)
-    (let ((maybe-doc (alist-ref aspect-key (cdr semantic))))
-      (if maybe-doc
-	  (car maybe-doc)
-	  "")))
+    (or (alist-ref aspect-key (cdr semantic)) ""))
 
   (define (type-annotation->string definition)
     (if (alist-ref 'type-annotation (cdr definition))
 	(string-append "type: "
-		       (car (alist-ref 'type (alist-ref 'type-annotation
-							(cdr definition))))
+		       (alist-ref 'type (alist-ref 'type-annotation
+						   (cdr definition)))
 		       ", ")
 	""))
 
@@ -71,8 +73,7 @@
 		   (if (alist-ref 'type-annotation (cdr d))
 		       (string-append
 			"  ; type: "
-			(car (alist-ref 'type
-					(alist-ref 'type-annotation (cdr d)))))
+			(alist-ref 'type (alist-ref 'type-annotation (cdr d))))
 		       "")
 		   "\n```\n"
 		   (aspect->string 'comment d)))
@@ -85,50 +86,50 @@
 	 (iota (length (car rows)))))
 
   (define (make-md-table header contents)
-    (let* ((_header (map ->string header))
-	   (cell-widths (string-max-lengths (cons _header contents))))
-      (string-append
-       "\n"
-       (string-intersperse
-	(map (lambda (row)
-	       (string-intersperse (map (lambda (cell cell-width)
-					  (string-pad-right cell cell-width))
-					row cell-widths)
-				   " | "))
-	     (append (list _header (map (lambda (cell-width)
-					  (make-string cell-width #\-))
-					cell-widths))
-		     contents))
-	"\n")
-       "\n")))
-
-  (define (transform-record-fields record-definition)
-    (let* ((fields (alist-ref 'fields (cdr record-definition)) )
-	   (aspects (filter (lambda (feature)
-			      (any (lambda (f)
-				     (alist-ref feature (cdr f)))
-				   fields))
-			    '(name getter setter default type comment))))
-      (make-md-table aspects
-		     (map (lambda (f)
-			    (map (lambda (a)
-				   (aspect->string a f))
-				 aspects))
-			  fields))))
+    (let* ((aspects (filter (lambda (feature)
+			      (any (lambda (c)
+				     (alist-ref feature (cdr c)))
+				   contents))
+			    header))
+	   (md-header (map ->string aspects))
+	   (md-body (map (lambda (c)
+			   (map (lambda (a)
+				  (aspect->string a c))
+				aspects))
+			 contents))
+	   (cell-widths (string-max-lengths (cons md-header md-body))))
+      (if (= 1 (length md-header))
+	  (string-append (car md-header) ": " (caar md-body) "\n\n")
+	  (string-append
+	   "\n"
+	   (string-intersperse
+	    (map (lambda (row)
+		   (string-intersperse (map (lambda (cell cell-width)
+					      (string-pad-right cell cell-width))
+					    row cell-widths)
+				       " | "))
+		 (append (list md-header (map (lambda (cell-width)
+						(make-string cell-width #\-))
+					      cell-widths))
+			 md-body))
+	    "\n")
+	   "\n"))))
 
   (define (transform-record-definition d)
     (string-append "### [RECORD] "
 		   (aspect->string 'name d)
-		   "\n**[CONSTRUCTOR]**\n"
-		   (wrap-in-code-block (aspect->string 'constructor d))
-		   "**[PREDICATE]**\n"
-		   (wrap-in-code-block (aspect->string 'predicate d))
-		   "**[IMPLEMENTATION]** `"
-		   (aspect->string 'implementation d)
-		   "`\n\n**[FIELDS]**\n"
-		   (transform-record-fields d)
+		   "\n\n**constructor:** "
+		   (make-inline-code-block (aspect->string 'constructor d))
+		   "  \n**predicate:** "
+		   (make-inline-code-block (aspect->string 'predicate d))
+		   "  \n**implementation:** "
+		   (make-inline-code-block (aspect->string 'implementation d))
+		   "  \n**fields:**\n"
+		   (make-md-table '(name getter setter default type comment)
+				  (alist-ref 'fields (cdr d)))
 		   "\n"
-		   (aspect->string 'comment d)))
+		   (aspect->string 'comment d)
+		   "\n"))
 
   ;; TODO extract the signature
   (define (transform-syntax-definition d)
@@ -136,6 +137,19 @@
 		   (aspect->string 'name d)
 		   "\n"
 		   (aspect->string 'comment d)))
+
+  (define (transform-class-definition d)
+    (string-append "### [CLASS] "
+		   (make-inline-code-block (aspect->string 'name d))
+		   "  \n**inherits from:** "
+		   (string-concatenate (map make-inline-code-block
+					    (alist-ref 'superclasses (cdr d))))
+		   "  \n**slots:**\n"
+		   (make-md-table '(name initform accessor getter setter)
+				  (alist-ref 'slots (cdr d)))
+		   "\n"
+		   (aspect->string 'comment d)
+		   "\n"))
 
   (define (transform-module-declaration d document-internals)
     (string-append "## MODULE "
@@ -155,7 +169,7 @@
 
   (define (transform-source-element source-element document-internals)
     (case (car source-element)
-      ((comment) (cadr source-element))
+      ((comment) (cdr source-element))
       ((constant-definition variable-definition)
        (transform-generic-definition source-element))
       ((module-declaration) (transform-module-declaration source-element
@@ -163,6 +177,7 @@
       ((procedure-definition) (transform-procedure-definition source-element))
       ((record-definition) (transform-record-definition source-element))
       ((syntax-definition) (transform-syntax-definition source-element))
+      ((class-definition) (transform-class-definition source-element))
       (else (error (string-append "Unsupported source element "
 				  (->string (car source-element)))))))
 
@@ -174,10 +189,11 @@
   (define (semantics->md source #!optional document-internals)
     (unless (eqv? 'source (car source))
       (error "Not a semantic source expression."))
-    (string-intersperse
-     (map (lambda (elem)
-	    (transform-source-element elem document-internals))
-	  (cdr source))
-     "\n"))
+    (string-append (string-intersperse
+		    (map (lambda (elem)
+			   (transform-source-element elem document-internals))
+			 (cdr source))
+		    "\n")
+		   "\n"))
 
   ) ;; end module semantics2md-impl
