@@ -69,4 +69,7 @@
   (define-class <mysubclass> (<myclass>)
     (foobar))
 
+  (define-method (do-foo primary: (baz <myclass>) another-arg)
+    42)
+
   ) ;; end module foo

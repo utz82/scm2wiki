@@ -41,6 +41,10 @@
 ;;; `      +- getter`          |
 ;;; `      +- setter`          |
 ;;; `+- class-method`          | specialization of a generic procedure
+;;; `  +- name`                |
+;;; `  +- classes`             |
+;;; `  +- qualifier`           |
+;;; `  +- signature`           |
 ;;; `+- comment`               | stand-alone comment block
 ;;; `+- constant-definition`   | constant definition using `define-constant`
 ;;; `  +- comment`             | comment describing the constant

@@ -108,7 +108,8 @@
 	   (string-intersperse
 	    (map (lambda (row)
 		   (string-intersperse (map (lambda (cell cell-width)
-					      (string-pad-right cell cell-width))
+					      (string-pad-right cell
+								cell-width))
 					    row cell-widths)
 				       " | "))
 		 (append (list md-header (map (lambda (cell-width)
@@ -141,46 +142,79 @@
 		   "\n"
 		   (aspect->string 'comment d)))
 
-  (define (transform-class-definition d)
-    (string-append "### [CLASS] "
-		   (make-inline-code-block (aspect->string 'name d))
-		   "  \n**inherits from:** "
-		   (string-concatenate (map make-inline-code-block
-					    (alist-ref 'superclasses (cdr d))))
-		   "  \n**slots:**\n"
-		   (make-md-table '(name initform accessor getter setter)
-				  (alist-ref 'slots (cdr d)))
-		   "\n"
-		   (aspect->string 'comment d)
-		   "\n"))
+  (define (find-class-methods classname methods)
+    (filter (lambda (m)
+	      (and (alist-ref 'classes (cdr m))
+		   (member classname (alist-ref 'classes (cdr m)))))
+	    methods))
 
-  (define (transform-module-declaration d document-internals)
-    (string-append "## MODULE "
-		   (aspect->string 'name d)
-		   "\n"
+  (define (transform-method-definition d)
+    (string-append "#### [method] "
+     (make-inline-code-block (aspect->string 'name d))
+		   "  \n"
+		   (make-code-block (aspect->string 'signature d))
 		   (aspect->string 'comment d)
-		   "\n"
-		   (string-intersperse
-		    (map (lambda (elem)
-			   (transform-source-element elem
-						     document-internals))
-			 (if document-internals
-			     (alist-ref 'body (cdr d))
-			     ;; TODO filter against exports list
-			     (alist-ref 'body (cdr d))))
-		    "\n\n")))
+		   "  \n"))
 
-  (define (transform-source-element source-element document-internals)
+  (define (transform-class-definition d methods)
+    (let ((used-methods (find-class-methods (aspect->string 'name d)
+					    methods)))
+      (string-append "### [CLASS] "
+		     (make-inline-code-block (aspect->string 'name d))
+		     "  \n**inherits from:** "
+		     (string-concatenate (map make-inline-code-block
+					      (alist-ref 'superclasses
+							 (cdr d))))
+		     "  \n**slots:**\n"
+		     (make-md-table '(name initform accessor getter setter)
+				    (alist-ref 'slots (cdr d)))
+		     "\n"
+		     (aspect->string 'comment d)
+		     (or (and (not (null? used-methods))
+			      (string-concatenate
+			       (cons "  \n\n"
+				     (map (lambda (m)
+					    (transform-method-definition m))
+					  used-methods))))
+			 "")
+		     "\n")))
+
+  (define (transform-module-declaration d document-internals methods)
+    (let* ((is-method? (lambda (elem) (eqv? 'method-definition (car elem))))
+	   (method-definitions (append methods
+				       (filter is-method?
+					       (alist-ref 'body (cdr d))))))
+      (string-append "## MODULE "
+		     (aspect->string 'name d)
+		     "\n"
+		     (aspect->string 'comment d)
+		     "\n"
+		     (string-intersperse
+		      (map (lambda (elem)
+			     (transform-source-element elem
+						       document-internals
+						       method-definitions))
+			   (remove is-method?
+				   (if document-internals
+				       (alist-ref 'body (cdr d))
+				       ;; TODO filter against exports list
+				       (alist-ref 'body (cdr d)))))
+		      "\n\n"))))
+
+  (define (transform-source-element source-element document-internals
+				    #!optional (method-definitions '()))
     (case (car source-element)
       ((comment) (cdr source-element))
       ((constant-definition variable-definition)
        (transform-generic-definition source-element))
       ((module-declaration) (transform-module-declaration source-element
-							  document-internals))
+							  document-internals
+							  method-definitions))
       ((procedure-definition) (transform-procedure-definition source-element))
       ((record-definition) (transform-record-definition source-element))
       ((syntax-definition) (transform-syntax-definition source-element))
-      ((class-definition) (transform-class-definition source-element))
+      ((class-definition) (transform-class-definition source-element
+						      method-definitions))
       (else (error (string-append "Unsupported source element "
 				  (->string (car source-element)))))))
 
@@ -192,11 +226,14 @@
   (define (semantics->md source #!optional document-internals)
     (unless (eqv? 'source (car source))
       (error "Not a semantic source expression."))
-    (string-append (string-intersperse
-		    (map (lambda (elem)
-			   (transform-source-element elem document-internals))
-			 (cdr source))
-		    "\n")
-		   "\n"))
+    (let* ((is-method? (lambda (elem) (eqv? 'method-definition (car elem))))
+	   (method-definitions (filter is-method? (cdr source))))
+      (string-append (string-intersperse
+		      (map (lambda (elem)
+			     (transform-source-element elem document-internals
+						       method-definitions))
+			   (remove is-method? (cdr source)))
+		      "\n")
+		     "\n")))
 
   ) ;; end module semantics2md-impl

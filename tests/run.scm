@@ -334,6 +334,7 @@
 				    (name . "baz")
 				    (signature . "(baz x y)")
 				    (comment . "A procedure definition"))))
-	#f)))
+	#f
+	'())))
 
 (test-exit)
