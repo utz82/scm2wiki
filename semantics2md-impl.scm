@@ -27,7 +27,7 @@
 	  srfi-1 srfi-13)
 
   (define (make-code-block str)
-    (string-append "\n```Scheme\n" str "\n```\n\n"))
+    (string-append "\n\n```Scheme\n" str "\n```\n\n"))
 
   (define (make-inline-code-block str)
     (string-append "`"
@@ -49,34 +49,53 @@
 	""))
 
   (define (transform-generic-definition d)
-    (string-append "### "
-		   (if (eqv? 'constant-definition (car d))
-		       "[CONSTANT] "
-		       "[VARIABLE] ")
-		   (aspect->string 'name d)
-		   "\n```Scheme\n"
-		   (aspect->string 'name d)
-		   "  ; "
-		   (type-annotation->string d)
-		   (if (eqv? 'constant-definition (car d))
-		       "value: "
-		       "default: ")
-		   (aspect->string 'value d)
-		   "\n```\n"
-		   (aspect->string 'comment d)))
+    (let ((type-annotation (alist-ref 'type-annotation (cdr d)))
+	  (val (aspect->string 'value d)))
+      (string-append "#### "
+		     (if (eqv? 'constant-definition (car d))
+			 "[constant] "
+			 "[variable] ")
+		     (make-inline-code-block (aspect->string 'name d))
+		     "  \n"
+		     (if type-annotation
+			 (string-append "**type:** "
+					(make-inline-code-block
+					 (alist-ref 'type
+						    (alist-ref 'type-annotation
+							       (cdr d))))
+					"  \n")
+			 "")
+		     ;; "\n```Scheme\n"
+		     ;; (aspect->string 'name d)
+		     ;; "  ; "
+		     ;; (type-annotation->string d)
+		     (if (eqv? 'constant-definition (car d))
+			 "**value:** "
+			 "**default:** ")
+		     (if (> (string-length val) 80)
+			 (make-code-block val)
+			 (make-inline-code-block val))
+		     "  \n"
+		     ;; "\n```\n"
+		     (aspect->string 'comment d)
+		     "  \n")))
 
   (define (transform-procedure-definition d)
-    (string-append "### [PROCEDURE] "
-		   (aspect->string 'name d)
-		   "\n```Scheme\n"
-		   (aspect->string 'signature d)
+    (string-append "#### [procedure] "
+		   ;; (aspect->string 'name d)
+		   ;; "\n```Scheme\n"
+		   (make-inline-code-block (aspect->string 'signature d))
+		   "\n"
 		   (if (alist-ref 'type-annotation (cdr d))
 		       (string-append
-			"  ; type: "
-			(alist-ref 'type (alist-ref 'type-annotation (cdr d))))
+			"**type: "
+			(make-inline-code-block
+			 (alist-ref 'type
+				    (alist-ref 'type-annotation (cdr d)))))
 		       "")
-		   "\n```\n"
-		   (aspect->string 'comment d)))
+		   "  \n"
+		   (aspect->string 'comment d)
+		   "  \n"))
 
   (define (string-max-lengths rows)
     (map (lambda (pos)
@@ -120,13 +139,13 @@
 	   "\n"))))
 
   (define (transform-record-definition d)
-    (string-append "### [RECORD] "
-		   (aspect->string 'name d)
-		   "\n\n**constructor:** "
+    (string-append "### [record] "
+		   (make-inline-code-block (aspect->string 'name d))
+		   "  \n**[constructor] "
 		   (make-inline-code-block (aspect->string 'constructor d))
-		   "  \n**predicate:** "
+		   "**  \n**[predicate] "
 		   (make-inline-code-block (aspect->string 'predicate d))
-		   "  \n**implementation:** "
+		   "**  \n**implementation:** "
 		   (make-inline-code-block (aspect->string 'implementation d))
 		   "  \n**fields:**\n"
 		   (make-md-table '(name getter setter default type comment)
@@ -137,10 +156,11 @@
 
   ;; TODO extract the signature
   (define (transform-syntax-definition d)
-    (string-append "### [SYNTAX] "
-		   (aspect->string 'name d)
-		   "\n"
-		   (aspect->string 'comment d)))
+    (string-append "#### [syntax] "
+		   (make-inline-code-block (aspect->string 'name d))
+		   "  \n"
+		   (aspect->string 'comment d)
+		   "  \n"))
 
   (define (find-class-methods classname methods)
     (filter (lambda (m)
@@ -149,27 +169,26 @@
 	    methods))
 
   (define (transform-method-definition d)
-    (string-append "#### [method] "
-     (make-inline-code-block (aspect->string 'name d))
-		   "  \n"
-		   (make-code-block (aspect->string 'signature d))
+    (string-append "**[method] "
+		   (make-inline-code-block (aspect->string 'signature d))
+		   "**  \n"
 		   (aspect->string 'comment d)
-		   "  \n"))
+		   "  \n\n"))
 
   (define (transform-class-definition d methods)
     (let ((used-methods (find-class-methods (aspect->string 'name d)
 					    methods)))
-      (string-append "### [CLASS] "
+      (string-append "### [class] "
 		     (make-inline-code-block (aspect->string 'name d))
 		     "  \n**inherits from:** "
 		     (string-concatenate
 		      (map (lambda (superclass)
 			     (string-append "["
 					    (make-inline-code-block superclass)
-					    "](#class-"
+					    "](#class-lt"
 					    (string-downcase
 					     (string-translate superclass "<>"))
-					    ")"))
+					    "gt)"))
 			   (alist-ref 'superclasses
 				      (cdr d))))
 		     "  \n**slots:**\n"
@@ -191,7 +210,7 @@
 	   (method-definitions (append methods
 				       (filter is-method?
 					       (alist-ref 'body (cdr d))))))
-      (string-append "## MODULE "
+      (string-append "## [module] "
 		     (aspect->string 'name d)
 		     "\n"
 		     (aspect->string 'comment d)

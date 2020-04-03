@@ -62,7 +62,7 @@
 		(alist-ref 'comment (cdr res)))))
 
   (test "destructuring procedure definitions"
-	'(procedure-definition "foo" "A procedure" "(foo x y)" "(+ x y)")
+	'(procedure-definition "foo" "A procedure" "(foo X Y)" "(+ x y)")
 	(let ((res (parse (a-procedure-definition ";;;")
 			  ";;; A procedure\n (define (foo x y) (+ x y))\n")))
 	  (list (car res)
@@ -108,7 +108,7 @@
 				  "foo"))
 
   (test "generate defstruct constructor"
-	'(constructor . "(make-foo x: x1 y: y1)")
+	'(constructor . "(make-foo x: X1 y: X2)")
 	(generate-defstruct-constructor
 	 (list (parse (a-record-field ";;;")
 		      "((x 1) : fixnum)")
@@ -117,8 +117,8 @@
 	 "foo"))
 
   (test "destructuring defstruct record definition"
-	'(record-definition "A defstruct" "defstruct" "(make-foo x: x1 y: y1)"
-			    "(foo? x)" "x" "foo-x" "foo-x-set!"
+	'(record-definition "A defstruct" "defstruct" "(make-foo x: X1 y: X2)"
+			    "(foo? X)" "x" "foo-x" "foo-x-set!"
 			    "y" "foo-y" "foo-y-set!" "1" "fixnum")
 	(let* ((res (parse (a-defstruct ";;;")
 			   (string-append
@@ -141,7 +141,7 @@
 
   (test "destructuring define-record definition"
 	'(record-definition "A define-record" "define-record" "(make-foo x y)"
-			    "(foo? x)" "x" "foo-x" "foo-x-set!"
+			    "(foo? X)" "x" "foo-x" "foo-x-set!"
 			    "y" "foo-y" "foo-y-set!" "fixnum")
 	(let* ((res (parse (a-define-record ";;;")
 			   (string-append
@@ -240,9 +240,8 @@
  "Markdown Generation"
 
  (test "generic definitions"
-       (string-append "### [VARIABLE] foo\n"
-		      "```Scheme\nfoo  ; type: fixnum, default: 1\n"
-		      "```\nA variable definition")
+       (string-append "#### [variable] `foo`  \n**type:** `fixnum`  \n"
+		      "**default:** `1`  \nA variable definition  \n")
        (transform-generic-definition
 	'(variable-definition (name . "foo")
 			      (value . "1")
@@ -251,10 +250,9 @@
 			      (comment . "A variable definition"))))
 
  (test "procedure definitions"
-       (string-append "### [PROCEDURE] foo\n"
-		      "```Scheme\n(foo x !#optional y)"
-		      "  ; type: (fixnum #!optional bool) -> . bool"
-		      "\n```\nA procedure definition")
+       (string-append "#### [procedure] `(foo x !#optional y)`\n"
+		      "**type: `(fixnum #!optional bool) -> . bool`  \n"
+		      "A procedure definition  \n")
        (transform-procedure-definition
 	'(procedure-definition
 	  (name . "foo")
@@ -281,11 +279,10 @@
 			   (comment . "Another comment")))))
 
  (test "record definitions"
-       (string-append "### [RECORD] foo\n\n"
-		      "**constructor:** `(make-foo x y)`  \n"
-		      "**predicate:** `(foo? x)`  \n"
-		      "**implementation:** `defstruct`  \n"
-		      "**fields:**\n\n"
+       (string-append "### [record] `foo`  \n"
+		      "**[constructor] `(make-foo x y)`**  \n"
+		      "**[predicate] `(foo? x)`**  \n"
+		      "**implementation:** `defstruct`  \n**fields:**\n\n"
 		      "name | getter  | setter       | default | comment          \n"
 		      "---- | ------- | ------------ | ------- | -----------------\n"
 		      "`x`  | `foo-x` | `foo-x-set!` |         |                  \n"
@@ -305,20 +302,16 @@
 					   (getter . "foo-y")
 					   (comment . "A field comment"))))))
  (test "syntax definitions"
-       "### [SYNTAX] foo\nA comment"
+       "#### [syntax] `foo`  \nA comment  \n"
        (transform-syntax-definition
 	'(syntax-definition (name . "foo") (comment . "A comment"))))
 
  (test "module declarations"
-       (string-append "## MODULE foo\n"
-		      "A module description\n"
-		      "A stand-alone comment\n\n"
-		      "### [VARIABLE] bar\n"
-		      "```Scheme\nbar  ; type: fixnum, default: 1\n```\n"
-		      "A variable definition\n\n"
-		      "### [PROCEDURE] baz\n"
-		      "```Scheme\n(baz x y)"
-		      "\n```\nA procedure definition")
+       (string-append "## [module] foo\nA module description\n"
+		      "A stand-alone comment\n\n#### [variable] `bar`  \n"
+		      "**type:** `fixnum`  \n**default:** `1`  \n"
+		      "A variable definition  \n\n\n"
+		      "#### [procedure] `(baz x y)`\n  \nA procedure definition  \n")
        (transform-module-declaration
 	'(module-declaration (name . "foo")
 			     (comment . "A module description")

@@ -138,17 +138,50 @@
   (define (a-variable-definition comment-prefix)
     (a-generic-definition comment-prefix 'define 'variable-definition))
 
+  (define (transform-arguments args)
+    (let ((make-initializer-list-string
+	   (lambda (str)
+	     (let ((destructured
+		    (parse (sequence* ((_ (is #\())
+				       (_ maybe-whitespace)
+				       (sym (as-string an-atom))
+				       (_ maybe-whitespace)
+				       (rest (as-string
+					      (zero-or-more
+					       (sequence a-sexp
+							 maybe-whitespace))))
+				       (_ (is #\))))
+				      (result (cons sym rest)))
+			   str)))
+	       (string-append "(" (string-upcase (car destructured))
+			      " " (cdr destructured) ")")))))
+      (string-intersperse
+       (map (lambda (arg)
+	      (if (parse a-cons arg)
+		  (make-initializer-list-string arg)
+		  (string-trim-both (if (or (string-prefix? "#" arg)
+					    (string-suffix? ":" arg))
+					arg
+					(string-upcase arg)))))
+	    args)
+       " ")))
+
   (define a-signature
     (sequence* ((_ (is #\())
 		(name (as-string an-atom))
 		(_ maybe-whitespace)
-		(args (as-string (zero-or-more (sequence a-sexp
+		(args (zero-or-more (as-string (sequence a-sexp
 							 maybe-whitespace))))
 		(_ (is #\))))
-	       (result (cons name (string-append "(" name
-						 (if (string-null? args)
-						     "" " ")
-						 args ")")))))
+	       (result (cons name
+			     (string-append
+			      "("
+			      name
+			      (if (null? args)
+				  ""
+				  (string-append " "
+						 (transform-arguments args)))
+			      ")")))))
 
   (define (a-procedure-definition comment-prefix)
     (sequence* ((comment (maybe (a-comment comment-prefix)))
@@ -258,10 +291,11 @@
 	  (string-append
 	   "(make-" record-name " "
 	   (string-intersperse
-	    (map (lambda (field)
+	    (map (lambda (field i)
 		   (let ((field-name (alist-ref 'name (cdr field))))
-		     (string-append field-name ": " field-name "1")))
-		 fields))
+		     (string-append field-name ": X" (number->string i))))
+		 fields
+		 (iota (length fields) 1)))
 	   ")")))
 
   (define (a-generic-record-definition comment-prefix implementation
@@ -283,7 +317,7 @@
 			 (name . ,name)
 			 (implementation . ,implementation)
 			 ,(constructor-generator args name)
-			 (predicate . ,(string-append "(" name "? x)"))
+			 (predicate . ,(string-append "(" name "? X)"))
 			 ,(cons 'fields
 				(generate-getters+setters args name))))))
 
@@ -441,10 +475,10 @@
 				 (cons (or (cadr signature)
 					   '())
 				       (append (map (lambda (x)
-						      (list (car x)
+						      (list (string-upcase (car x))
 							    (cdr x)))
 						    (caddr signature))
-					       (cadddr signature))))))))
+					       (list (transform-arguments (cadddr signature))))))))))
 
   (define (a-method-definition comment-prefix)
     (sequence* ((comment (maybe (a-comment comment-prefix)))
