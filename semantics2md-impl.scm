@@ -162,9 +162,16 @@
       (string-append "### [CLASS] "
 		     (make-inline-code-block (aspect->string 'name d))
 		     "  \n**inherits from:** "
-		     (string-concatenate (map make-inline-code-block
-					      (alist-ref 'superclasses
-							 (cdr d))))
+		     (string-concatenate
+		      (map (lambda (superclass)
+			     (string-append "["
+					    (make-inline-code-block superclass)
+					    "](#class-"
+					    (string-downcase
+					     (string-translate superclass "<>"))
+					    ")"))
+			   (alist-ref 'superclasses
+				      (cdr d))))
 		     "  \n**slots:**\n"
 		     (make-md-table '(name initform accessor getter setter)
 				    (alist-ref 'slots (cdr d)))

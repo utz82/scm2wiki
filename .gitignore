@@ -3,5 +3,9 @@
 *~
 docs/
 *.so
+*.link
 *.import.scm
+*.static.o
+*.install.sh
+*.build.sh
 scm2wiki

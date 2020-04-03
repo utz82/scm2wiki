@@ -5,8 +5,8 @@ ifdef RELEASE
 endif
 IMPORTFLAGS = -s -d0
 
-scm2wiki: scm2wiki-bin-wrapper.scm scm-semantics.import.so semantics2md.import.so
-	$(CSC) scm2wiki-bin-wrapper.scm -b -O3 -o scm2wiki
+scm2wiki: scm2wiki.scm scm-semantics.import.so semantics2md.import.so
+	$(CSC) scm2wiki.scm -b -O3 -o scm2wiki
 
 scm-semantics.so: scm-semantics.scm scm-semantics-impl.import.so
 	$(CSC) $(LIBFLAGS) scm-semantics.scm -j scm-semantics

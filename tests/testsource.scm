@@ -32,7 +32,11 @@
     (+ y y))
 
   ;;; A record type definition using defstruct
-  (defstruct bla x y (z 1))
+  (defstruct bla
+    x ;;; a field comment
+    y
+    (z 1) ;;; another field comment
+    )
 
   ;;; A record type definition using chicken/define-record
   (define-record blu x y)

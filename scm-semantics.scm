@@ -19,8 +19,6 @@
 ;; SOFTWARE.
 
 
-;;; # SCM-SEMANTICS
-;;;
 ;;; Destructure Chicken Scheme source code into an s-expression representing the
 ;;; source on a semantic level.
 ;;;
@@ -88,7 +86,6 @@
 ;;;
 ;;; Only comments starting with a specific prefix are considered. By default,
 ;;; that prefix is `;;;`.
-
 (module scm-semantics
     *
   (import scheme (chicken base) (chicken module)

@@ -192,10 +192,6 @@
 			 (default . ,default)))))
 
   (define (replace-newlines str)
-    (display str)
-    (newline)
-    (display (string? str))
-    (newline)
     (string-translate str #\newline #\space))
 
   ;; name-only, name+default, name+type-anno, name+default+type-anno
@@ -238,9 +234,9 @@
 		       (result (cons 'field
 				     (if comment
 					 (append name+default
-						 `((comment
-						    ,(replace-newlines
-						      comment))))
+						 `((comment .
+							    ,(replace-newlines
+							      comment))))
 					 name+default))))))
 
   (define (generate-getters+setters fields record-name)

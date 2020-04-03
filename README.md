@@ -15,6 +15,8 @@ scm2wiki can generate documentation for the following definition types:
 - constant definitions using `define-constant`
 - macro definitions using `define-syntax` (limited support)
 - record type definitions using `define-record`, `define-record-type`, and `defstruct`
+- coops class definitions using `define-class`
+- coops generic procedure specializations using `define-method`
 
 scm2wiki understands Chicken Scheme's native `module` declarations. By default, it will only generate documentation for symbols that are exported.
 
@@ -23,11 +25,18 @@ There is also some limited support for simple type annotations, including [typed
 
 ### Usage
 
-`$ scm2wiki -i infile.scm [-o outfile.wiki] [-p prefix] [-m]`
+`$ scm2wiki [options...]`
 
-By default, scm2wiki outputs in svnwiki format. To output to Markdown, use the `-m` flag.
+By default, scm2wiki reads from STDIN and outputs Markdown to STDOUT.
+The following options are available:
 
-If the `-o` specifier is omitted, the output filename will be post-fixed with ".wiki" or ".md", depending on which output mode is invoked.
+option                 | function
+-----------------------|-------
+-i, --infile=FILENAME  | specify an input file
+-o, --outfile=FILENAME | specify an output file
+-p, --prefix=STRING    | change the comment prefix (default `";;;"`)
+--svn                  | output to svnwiki instead of Markdown
+--document-internals   | emit documentation for non-exported symbols
 
 
 ### Example
