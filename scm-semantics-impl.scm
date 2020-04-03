@@ -145,7 +145,10 @@
 		(args (as-string (zero-or-more (sequence a-sexp
 							 maybe-whitespace))))
 		(_ (is #\))))
-	       (result (cons name (string-append "(" name " " args ")")))))
+	       (result (cons name (string-append "(" name
+						 (if (string-null? args)
+						     "" " ")
+						 args ")")))))
 
   (define (a-procedure-definition comment-prefix)
     (sequence* ((comment (maybe (a-comment comment-prefix)))
