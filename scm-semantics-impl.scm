@@ -289,13 +289,11 @@
   (define (generate-defstruct-constructor fields record-name)
     (cons 'constructor
 	  (string-append
-	   "(make-" record-name " "
+	   "(make-" record-name " #!key "
 	   (string-intersperse
-	    (map (lambda (field i)
-		   (let ((field-name (alist-ref 'name (cdr field))))
-		     (string-append field-name ": X" (number->string i))))
-		 fields
-		 (iota (length fields) 1)))
+	    (map (lambda (field)
+		   (alist-ref 'name (cdr field)))
+		 fields))
 	   ")")))
 
   (define (a-generic-record-definition comment-prefix implementation
@@ -317,7 +315,7 @@
 			 (name . ,name)
 			 (implementation . ,implementation)
 			 ,(constructor-generator args name)
-			 (predicate . ,(string-append "(" name "? X)"))
+			 (predicate . ,(string-append name "?"))
 			 ,(cons 'fields
 				(generate-getters+setters args name))))))
 

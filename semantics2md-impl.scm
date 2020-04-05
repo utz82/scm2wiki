@@ -97,13 +97,16 @@
 			   rows)))
 	 (iota (length (car rows)))))
 
-  (define (make-md-table header contents)
+  (define (make-md-table header contents #!optional (show-header header))
     (let* ((aspects (filter (lambda (feature)
 			      (any (lambda (c)
 				     (alist-ref feature (cdr c)))
 				   contents))
 			    header))
-	   (md-header (map ->string aspects))
+	   (md-header (filter-map (lambda (actual show)
+				    (and (memv actual aspects)
+					 (->string show)))
+				  header show-header))
 	   (md-body (map (lambda (c)
 			   (map (lambda (a)
 				  (let ((astring (aspect->string a c)))
@@ -140,9 +143,10 @@
 		   (make-inline-code-block (aspect->string 'predicate d))
 		   "**  \n**implementation:** "
 		   (make-inline-code-block (aspect->string 'implementation d))
-		   "  \n**fields:**\n"
+		   "  \n"
 		   (make-md-table '(name getter setter default type comment)
-				  (alist-ref 'fields (cdr d)))
+				  (alist-ref 'fields (cdr d))
+				  '(field getter setter default type comment))
 		   "\n"
 		   (aspect->string 'comment d)
 		   "\n"))
@@ -173,20 +177,25 @@
 					    methods)))
       (string-append "### [class] "
 		     (make-inline-code-block (aspect->string 'name d))
-		     "  \n**inherits from:** "
-		     (string-concatenate
-		      (map (lambda (superclass)
-			     (string-append "["
-					    (make-inline-code-block superclass)
-					    "](#class-lt"
-					    (string-downcase
-					     (string-translate superclass "<>"))
-					    "gt)"))
-			   (alist-ref 'superclasses
-				      (cdr d))))
-		     "  \n**slots:**\n"
+		     (if (null? (alist-ref 'superclasses (cdr d)))
+			 ""
+			 (string-append
+			  "  \n**inherits from:** "
+			  (string-concatenate
+			   (map (lambda (superclass)
+				  (string-append
+				   "["
+				   (make-inline-code-block superclass)
+				   "](#class-lt"
+				   (string-downcase
+				    (string-translate superclass "<>"))
+				   "gt)"))
+				(alist-ref 'superclasses
+					   (cdr d))))))
+		     "  \n"
 		     (make-md-table '(name initform accessor getter setter)
-				    (alist-ref 'slots (cdr d)))
+				    (alist-ref 'slots (cdr d))
+				    '(slot initform accessor getter setter))
 		     "\n"
 		     (aspect->string 'comment d)
 		     (or (and (not (null? used-methods))
