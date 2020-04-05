@@ -108,7 +108,7 @@
 				  "foo"))
 
   (test "generate defstruct constructor"
-	'(constructor . "(make-foo x: X1 y: X2)")
+	'(constructor . "(make-foo #!key x y)")
 	(generate-defstruct-constructor
 	 (list (parse (a-record-field ";;;")
 		      "((x 1) : fixnum)")
@@ -117,8 +117,8 @@
 	 "foo"))
 
   (test "destructuring defstruct record definition"
-	'(record-definition "A defstruct" "defstruct" "(make-foo x: X1 y: X2)"
-			    "(foo? X)" "x" "foo-x" "foo-x-set!"
+	'(record-definition "A defstruct" "defstruct" "(make-foo #!key x y)"
+			    "foo?" "x" "foo-x" "foo-x-set!"
 			    "y" "foo-y" "foo-y-set!" "1" "fixnum")
 	(let* ((res (parse (a-defstruct ";;;")
 			   (string-append
@@ -141,7 +141,7 @@
 
   (test "destructuring define-record definition"
 	'(record-definition "A define-record" "define-record" "(make-foo x y)"
-			    "(foo? X)" "x" "foo-x" "foo-x-set!"
+			    "foo?" "x" "foo-x" "foo-x-set!"
 			    "y" "foo-y" "foo-y-set!" "fixnum")
 	(let* ((res (parse (a-define-record ";;;")
 			   (string-append
@@ -280,20 +280,20 @@
 
  (test "record definitions"
        (string-append "### [record] `foo`  \n"
-		      "**[constructor] `(make-foo x y)`**  \n"
-		      "**[predicate] `(foo? x)`**  \n"
-		      "**implementation:** `defstruct`  \n**fields:**\n\n"
-		      "name | getter  | setter       | default | comment          \n"
-		      "---- | ------- | ------------ | ------- | -----------------\n"
-		      "`x`  | `foo-x` | `foo-x-set!` |         |                  \n"
-		      "`y`  | `foo-y` |              | `1`     | `A field comment`\n"
+		      "**[constructor] `(make-foo #!key x y)`**  \n"
+		      "**[predicate] `foo?`**  \n"
+		      "**implementation:** `defstruct`  \n\n"
+		      "field | getter  | setter       | default | comment          \n"
+		      "----- | ------- | ------------ | ------- | -----------------\n"
+		      "`x`   | `foo-x` | `foo-x-set!` |         |                  \n"
+		      "`y`   | `foo-y` |              | `1`     | `A field comment`\n"
 		      "\nA record definition\n")
        (transform-record-definition
 	'(record-definition (name . "foo")
 			    (implementation . "defstruct")
 			    (comment . "A record definition")
-			    (constructor . "(make-foo x y)")
-			    (predicate . "(foo? x)")
+			    (constructor . "(make-foo #!key x y)")
+			    (predicate . "foo?")
 			    (fields (field (name . "x")
 					   (getter . "foo-x")
 					   (setter . "foo-x-set!"))
@@ -311,11 +311,11 @@
 		      "A stand-alone comment\n\n#### [variable] `bar`  \n"
 		      "**type:** `fixnum`  \n**default:** `1`  \n"
 		      "A variable definition  \n\n\n"
-		      "#### [procedure] `(baz x y)`\n  \nA procedure definition  \n")
+		      "#### [procedure] `(baz X Y)`\n  \nA procedure definition  \n")
        (transform-module-declaration
 	'(module-declaration (name . "foo")
 			     (comment . "A module description")
-			     (exported-symbols . "bar")
+			     (exported-symbols "bar" "baz")
 			     (body (comment . "A stand-alone comment")
 				   (variable-definition
 				    (name . "bar")
@@ -325,7 +325,7 @@
 				    (comment . "A variable definition"))
 				   (procedure-definition
 				    (name . "baz")
-				    (signature . "(baz x y)")
+				    (signature . "(baz X Y)")
 				    (comment . "A procedure definition"))))
 	#f
 	'())))
