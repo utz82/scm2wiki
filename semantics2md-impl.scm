@@ -18,9 +18,8 @@
 ;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ;; SOFTWARE.
 
-;;; # SEMANTICS2MD-IMPL
-;;; Low-level implementation for semantics2md
 
+;;; Low-level implementation for semantics2md
 (module semantics2md-impl
     *
   (import scheme (chicken base) (chicken module) (chicken string)
@@ -34,8 +33,8 @@
 		   (string-translate str #\newline #\space)
 		   "`"))
 
-  ;; Extract documentation for the aspect given by `aspect-key` from the
-  ;; **semantic** source element. Returns an empty string if `semantic` does
+  ;; Extract documentation for the aspect given by ASPECT-KEY from the
+  ;; SEMANTIC source element. Returns an empty string if SEMANTIC does
   ;; not contain the given aspect.
   (define (aspect->string aspect-key semantic)
     (or (alist-ref aspect-key (cdr semantic)) ""))
@@ -256,11 +255,11 @@
       (else (error (string-append "Unsupported source element "
 				  (->string (car source-element)))))))
 
-  ;;; Generate documentation in Markdown format from  a semantic **source**
+  ;;; Generate documentation in Markdown format from  a semantic SOURCE
   ;;; expression (as produced by parse-semantics from the scm-semantics module).
   ;;; If the source contains a module declaration, only exported symbols will be
-  ;;; included in the resulting documentation, unless **document-internals** is
-  ;;; set to `#t`.
+  ;;; included in the resulting documentation, unless DOCUMENT-INTERNALS is
+  ;;; `#t`.
   (define (semantics->md source #!optional document-internals)
     (unless (eqv? 'source (car source))
       (error "Not a semantic source expression."))
