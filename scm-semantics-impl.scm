@@ -520,13 +520,22 @@
 
   (define (extract-exported-symbols source-elements)
     (filter-map (lambda (e)
-		  (and (memq (car e)
-			     '(constant-definition variable-definition
-						   procedure-definition
-						   record-definition
-						   syntax-definition))
+		  (and (memv (car e)
+			     '(class-definition variable-definition
+						procedure-definition
+						record-definition
+						syntax-definition))
 		       (alist-ref 'name (cdr e))))
-	 source-elements))
+		source-elements))
+
+  (define an-export-declaration
+    (sequence* ((_ (is #\())
+		(_ maybe-whitespace)
+		(names (zero-or-more (sequence* ((id (as-string an-atom))
+						 (_ maybe-whitespace))
+						(result id))))
+		(_ (is #\))))
+	       (result names)))
 
   ;; TODO reexports
   (define (a-module-declaration comment-prefix)
@@ -536,8 +545,8 @@
 		(_ (one-or-more (in char-set:whitespace)))
 		(name (as-string an-atom))
 		(_ (one-or-more (in char-set:whitespace)))
-		(exports (as-string (any-of (is #\*)
-					    a-cons)))
+		(exports (any-of (is #\*)
+				 an-export-declaration))
 		(_ maybe-whitespace)
 		(body (bind (one-or-more (a-source-element comment-prefix))
 			    (lambda (r)
@@ -548,9 +557,9 @@
 			     (filter-map-results
 			      '(name comment exported-symbols body)
 			      (list name comment
-				    (if (string= exports "*")
-					(extract-exported-symbols body)
-					exports)
+				    (if (pair? exports)
+					exports
+					(extract-exported-symbols (cdr body)))
 				    body))))))
 
   ;;; Parse the source code string **source** into an s-expression describing

@@ -65,10 +65,6 @@
 							       (cdr d))))
 					"  \n")
 			 "")
-		     ;; "\n```Scheme\n"
-		     ;; (aspect->string 'name d)
-		     ;; "  ; "
-		     ;; (type-annotation->string d)
 		     (if (eqv? 'constant-definition (car d))
 			 "**value:** "
 			 "**default:** ")
@@ -76,14 +72,11 @@
 			 (make-code-block val)
 			 (make-inline-code-block val))
 		     "  \n"
-		     ;; "\n```\n"
 		     (aspect->string 'comment d)
 		     "  \n")))
 
   (define (transform-procedure-definition d)
     (string-append "#### [procedure] "
-		   ;; (aspect->string 'name d)
-		   ;; "\n```Scheme\n"
 		   (make-inline-code-block (aspect->string 'signature d))
 		   "\n"
 		   (if (alist-ref 'type-annotation (cdr d))
@@ -210,22 +203,32 @@
 	   (method-definitions (append methods
 				       (filter is-method?
 					       (alist-ref 'body (cdr d))))))
-      (string-append "## [module] "
-		     (aspect->string 'name d)
-		     "\n"
-		     (aspect->string 'comment d)
-		     "\n"
-		     (string-intersperse
-		      (map (lambda (elem)
-			     (transform-source-element elem
-						       document-internals
-						       method-definitions))
-			   (remove is-method?
-				   (if document-internals
-				       (alist-ref 'body (cdr d))
-				       ;; TODO filter against exports list
-				       (alist-ref 'body (cdr d)))))
-		      "\n\n"))))
+      (string-append
+       "## [module] "
+       (aspect->string 'name d)
+       "\n"
+       (aspect->string 'comment d)
+       "\n"
+       (string-intersperse
+	(map (lambda (elem)
+	       (transform-source-element elem
+					 document-internals
+					 method-definitions))
+	     (remove
+	      is-method?
+	      (if document-internals
+		  (alist-ref 'body (cdr d))
+		  (remove
+		   (lambda (def)
+		     (and (member (car def)
+				  '(procedure-definition constant-definition
+							 variable-definition
+							 class-definition
+							 record-definition))
+			  (not (member (alist-ref 'name (cdr def))
+				       (alist-ref 'exported-symbols (cdr d))))))
+		   (alist-ref 'body (cdr d))))))
+	"\n\n"))))
 
   (define (transform-source-element source-element document-internals
 				    #!optional (method-definitions '()))
