@@ -159,6 +159,12 @@
   (define (svn-aspect->string aspect-key semantic)
     (or (alist-ref aspect-key (cdr semantic)) ""))
 
+  (define (svn-transform-comment definition)
+    (if (alist-ref 'comment (cdr definition))
+	(string-append (md->svn (svn-aspect->string 'comment definition))
+		       "\n")
+	""))
+
   (define (svn-transform-generic-definition d)
     (let ((type-annotation (alist-ref 'type-annotation (cdr d)))
 	  (val (svn-aspect->string 'value d)))
@@ -180,8 +186,7 @@
 			 (svn-make-code-block val)
 			 (svn-make-inline-code-block val))
 		     "\n"
-		     (md->svn (svn-aspect->string 'comment d))
-		     "\n")))
+		     (svn-transform-comment d))))
 
   (define (svn-transform-procedure-definition d)
     (string-append "<procedure>"
@@ -195,10 +200,7 @@
 				    (alist-ref 'type-annotation (cdr d)))))
 		       "")
 		   "\n"
-		   (if (alist-ref 'comment (cdr d))
-		       (string-append (md->svn (svn-aspect->string 'comment d))
-				      "\n")
-		       "")))
+		   (svn-transform-comment d)))
 
   (define (svn-string-max-lengths rows)
     (map (lambda (pos)
@@ -266,17 +268,17 @@
 		    (alist-ref 'fields (cdr d))
 		    '(field getter setter default type comment))
 		   "\n"
-		   (md->svn (svn-aspect->string 'comment d))
-		   "\n"))
+		   (svn-transform-comment d)))
 
   ;; TODO extract the signature
   (define (svn-transform-syntax-definition d)
     (string-append "<syntax>"
-		   (svn-aspect->string 'name d)
+		   (if (alist-ref 'signature (cdr d))
+		       (svn-aspect->string 'signature d)
+		       (svn-aspect->string 'name d))
 		   "</syntax>"
 		   "\n"
-		   (md->svn (svn-aspect->string 'comment d))
-		   "\n\n"))
+		   (svn-transform-comment d)))
 
   (define (svn-find-class-methods classname methods)
     (filter (lambda (m)
@@ -289,8 +291,7 @@
 		   (svn-aspect->string 'signature d)
 		   "</method>"
 		   "\n"
-		   (md->svn (svn-aspect->string 'comment d))
-		   "\n\n"))
+		   (svn-transform-comment d)))
 
   (define (svn-transform-class-definition d methods)
     (let ((used-methods (svn-find-class-methods (svn-aspect->string 'name d)
@@ -319,7 +320,7 @@
 				     (alist-ref 'slots (cdr d))
 				     '(slot initform accessor getter setter))
 		     "\n"
-		     (md->svn (svn-aspect->string 'comment d))
+		     (svn-transform-comment d)
 		     (or (and (not (null? used-methods))
 			      (string-concatenate
 			       (cons "  \n\n"
@@ -338,8 +339,7 @@
        "== Module "
        (svn-aspect->string 'name d)
        "\n"
-       (md->svn (svn-aspect->string 'comment d))
-       "\n"
+       (svn-transform-comment d)
        (string-intersperse
 	(map (lambda (elem)
 	       (svn-transform-source-element elem

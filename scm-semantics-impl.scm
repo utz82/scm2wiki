@@ -212,9 +212,19 @@
 		(_ maybe-whitespace)
 		(_ (sequence (is #\))))
 		(_ maybe-whitespace))
-	       (result (cons 'syntax-definition
-			     (filter-map-results '(name body comment)
-						 (list name body comment))))))
+	       (result
+		(let* ((raw-signature (and comment (parse a-signature comment)))
+		       (signature (and raw-signature (cdr raw-signature)))
+		       (actual-comment
+			(and comment
+			     (or (and signature
+				      (string-drop comment
+						   (string-length signature)))
+				 comment))))
+		  (cons 'syntax-definition
+			(filter-map-results '(name body signature comment)
+					    (list name body signature
+						  actual-comment)))))))
 
   (define a-field-name+default
     (sequence* ((_ (is #\())

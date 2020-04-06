@@ -39,6 +39,12 @@
   (define (aspect->string aspect-key semantic)
     (or (alist-ref aspect-key (cdr semantic)) ""))
 
+  (define (transform-comment definition)
+    (if (alist-ref 'comment (cdr definition))
+		       (string-append (aspect->string 'comment definition)
+				      "  \n")
+		       ""))
+
   (define (transform-generic-definition d)
     (let ((type-annotation (alist-ref 'type-annotation (cdr d)))
 	  (val (aspect->string 'value d)))
@@ -63,8 +69,7 @@
 			 (make-code-block val)
 			 (make-inline-code-block val))
 		     "  \n"
-		     (aspect->string 'comment d)
-		     "  \n")))
+		     (transform-comment d))))
 
   (define (transform-procedure-definition d)
     (string-append "#### [procedure] "
@@ -78,8 +83,7 @@
 				    (alist-ref 'type-annotation (cdr d)))))
 		       "")
 		   "  \n"
-		   (aspect->string 'comment d)
-		   "  \n"))
+		   (transform-comment d)))
 
   (define (string-max-lengths rows)
     (map (lambda (pos)
@@ -138,17 +142,17 @@
 		   (make-md-table '(name getter setter default type comment)
 				  (alist-ref 'fields (cdr d))
 				  '(field getter setter default type comment))
-		   "\n"
-		   (aspect->string 'comment d)
-		   "\n"))
+		   "  \n"
+		   (transform-comment d)))
 
   ;; TODO extract the signature
   (define (transform-syntax-definition d)
     (string-append "#### [syntax] "
-		   (make-inline-code-block (aspect->string 'name d))
+		   (make-inline-code-block (if (alist-ref 'signature (cdr d))
+					       (aspect->string 'signature d)
+					       (aspect->string 'name d)))
 		   "  \n"
-		   (aspect->string 'comment d)
-		   "  \n"))
+		   (transform-comment d)))
 
   (define (find-class-methods classname methods)
     (filter (lambda (m)
@@ -188,7 +192,7 @@
 				    (alist-ref 'slots (cdr d))
 				    '(slot initform accessor getter setter))
 		     "\n"
-		     (aspect->string 'comment d)
+		     (transform-comment d)
 		     (or (and (not (null? used-methods))
 			      (string-concatenate
 			       (cons "  \n\n"
@@ -207,8 +211,7 @@
        "## [module] "
        (aspect->string 'name d)
        "\n"
-       (aspect->string 'comment d)
-       "\n"
+       (transform-comment d)
        (string-intersperse
 	(map (lambda (elem)
 	       (transform-source-element elem

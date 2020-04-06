@@ -31,12 +31,19 @@
   (define-constant bar1 0)
 
   ;; An undocumented procedure
-  (define (foobar x)
+  (define (fooproc x)
     x)
 
   ;;; A documented procedure
-  (define (bazbar y)
+  (define (bazproc y)
     (+ y y))
+
+  ;;; (footax arg1 ...)
+  ;;; A list expression at the start of a syntax comment is interpreted as
+  ;;; the syntax' signature. scm2wiki does not auto-detect syntax signatures.
+  (define-syntax footax
+    (syntax-rules ()
+      ((_ a ...) (list a ...))))
 
   ;;; A record type definition using defstruct
   (defstruct bla

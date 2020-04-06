@@ -1,16 +1,28 @@
 # scm2wiki
 
-scm2wiki is a simple in-source documentation tool for Scheme, written in [Chicken Scheme](https://call-cc.org/). It generates documentation from comments in a Scheme source file. scm2wiki can render documentation as (Github flavored) Markdown, as well as Chicken's custom svnwiki format.
+scm2wiki is an in-source documentation tool for [Chicken Scheme](https://call-cc.org/). It generates documentation from comments in a Scheme source file. scm2wiki renders documentation as Github flavored Markdown, as well as Chicken's custom svnwiki format.
+
+### Contents
+
+* [Features](#features)
+* [Usage](#usage)
+  * [Installation](#installation)
+  * [Command Line Usage](#command-line-usage)
+  * [Example](#example)
+* [Alternatives to scm2wiki](#alternatives-to-scm2wiki)
+* [Version History](#version-history)
+* [TODO](#todo)
+* [Contributing](#contributing)
 
 ### Features
 
-scm2wiki uses stand-alone comment blocks and commented definitions in Scheme source code to generate documentation in Markdown or svnwiki format. scm2wiki supports Markdown in comments, and optionally transforms Markdown to svnwiki syntax.
+scm2wiki uses stand-alone comment blocks and commented definitions in Scheme source code to generate documentation in Markdown or svnwiki format. scm2wiki supports Markdown in comments.
 
 scm2wiki can generate documentation for the following definition types:
 
 - variable and procedure definitions using `define`
 - constant definitions using `define-constant`
-- macro definitions using `define-syntax` (limited support)
+- macro definitions using `define-syntax` (limited support, see [example](#example))
 - record type definitions using `define-record`, `define-record-type`, and `defstruct`
 - coops class definitions using `define-class`
 - coops generic procedure specializations using `define-method`
@@ -19,20 +31,28 @@ scm2wiki understands Chicken Scheme's native `module` declarations. By default, 
 
 There is also some limited support for simple type annotations, including [typed records](https://wiki.call-cc.org/eggref/5/typed-records). However, this feature is not yet complete.
 
+For svnwiki output, scm2wiki translates Markdown text. However, translation is limited and does not yet support lists, plain hyperlinks, inline images, and formatting in tables.
+
 
 ### Usage
+
+#### Installation
+
+scm2wiki is not yet an official CHICKEN egg. Install by cloning or downloading the repository, then run `$chicken-install` with no arguments in the main repository directory.
+
+#### Command Line Usage
 
 `$ scm2wiki [options...]`
 
 By default, scm2wiki reads from STDIN and outputs Markdown to STDOUT. The following options are available:
 
-option                 | function
------------------------|-------
--i, --infile=FILENAME  | specify an input file
--o, --outfile=FILENAME | specify an output file
--p, --prefix=STRING    | change the comment prefix (default `";;;"`)
---svn                  | output to svnwiki instead of Markdown
---document-internals   | emit documentation for non-exported symbols
+option                     | function
+---------------------------|-------
+`-i`, `--infile=FILENAME`  | specify an input file
+`-o`, `--outfile=FILENAME` | specify an output file
+`-p`, `--prefix=STRING`    | change the comment prefix (default `";;;"`)
+`--svn`                    | output to svnwiki instead of Markdown
+`--document-internals`     | emit documentation for non-exported symbols
 
 scm2wiki will only consider code comments with a specific, user-defined prefix. By default, the prefix is ";;;". See the following example for a complete list of supported source code elements.
 
@@ -73,12 +93,19 @@ scm2wiki will only consider code comments with a specific, user-defined prefix. 
   (define-constant bar1 0)
 
   ;; An undocumented procedure
-  (define (foobar x)
+  (define (fooproc x)
     x)
 
   ;;; A documented procedure
-  (define (bazbar y)
+  (define (bazproc y)
     (+ y y))
+
+  ;;; (footax arg1 ...)
+  ;;; A list expression at the start of a syntax comment is interpreted as
+  ;;; the syntax' signature. scm2wiki does not auto-detect syntax signatures.
+  (define-syntax footax
+    (syntax-rules ()
+      ((_ a ...) (list a ...))))
 
   ;;; A record type definition using defstruct
   (defstruct bla
@@ -137,20 +164,24 @@ with | actual      | content
 **default:** `0`
 
 
-
 #### [variable] `baz`
 **default:** `0`
 A documented variable
 
 
-#### [procedure] `(foobar X)`
+#### [procedure] `(fooproc X)`
 
 
 
-
-#### [procedure] `(bazbar Y)`
+#### [procedure] `(bazproc Y)`
 
 A documented procedure
+
+
+#### [syntax] `(footax ARG1 ...)`
+
+A procedure signature at the start of a syntax comment is interpreted as
+the syntax' signature. scm2wiki does not auto-detect syntax signatures.
 
 
 ### [record] `bla`
@@ -224,6 +255,7 @@ slot  | initform | accessor
 
 A slightly more complex coops class definition derived from `<myclass>`.
 
+
 **[method] `(do-foo primary: (BAZ <mysubclass>) ANOTHER-ARG)`**
 A procedure specialization on <mysubclass>.
 
@@ -252,19 +284,24 @@ A stand-alone comment stretching multiple lines
 ; default : {{0}}
 
 
-
 <constant>baz</constant>
 ; default : {{0}}
 A documented variable
 
 
-<procedure>(foobar X)</procedure>
+<procedure>(fooproc X)</procedure>
 
 
 
-<procedure>(bazbar Y)</procedure>
+<procedure>(bazproc Y)</procedure>
 
 A documented procedure
+
+
+<syntax>(footax ARG1 ...)</syntax>
+
+A procedure signature at the start of a syntax comment is interpreted as
+the syntax' signature. scm2wiki does not auto-detect syntax signatures.
 
 
 <record>bla</record>
@@ -311,6 +348,7 @@ A record type definition using srfi-9
 A very simple coops class type defintion.
 
 
+
 === Class <mysubclass>
 <class><mysubclass></class>
 
@@ -322,6 +360,7 @@ A very simple coops class type defintion.
 
 A slightly more complex coops class definition derived from {{<myclass>}}.
 
+
 <method>(do-foo primary: (BAZ <mysubclass>) ANOTHER-ARG)</method>
 A procedure specialization on <mysubclass>.
 ```
@@ -332,18 +371,26 @@ A procedure specialization on <mysubclass>.
 If you find that scm2wiki isn't suited for your needs, consider one of these alternatives:
 
 - [hahn](https://wiki.call-cc.org/eggref/4/hahn)
-- [schematic](https://wiki.call-cc.org/eggref/5/schematic).
-- [SchemeDoc](http://people.cs.aau.dk/~normark/schemedoc/).
+- [schematic](https://wiki.call-cc.org/eggref/5/schematic)
+- [SchemeDoc](http://people.cs.aau.dk/~normark/schemedoc/)
+
+
+### Version History
+
+0.2.0 - Support for syntax, records, procedure signatures, coops classes
+
+0.1.0 - initial release
 
 
 ### TODO
 
 * [markdown] transform variadic procedure definitions, svnwiki style
-* [markdown] automatic toc generation
 * [svnwiki] support for markdown lists, images, plain links, formatted text in tables
 * [all] better support for type annotations
 * [all] better support for macro definitions
+* [all] better support for generics
 * [all] support parameters
+* [all] option to auto-generate TOC
 * ~~[markdown] remove unsupported svnwiki tags~~ *done*
 * ~~[all] more robust command line arguments parsing~~ *done*
 * ~~[all] support for macro, record, constant definitions etc.~~ *done*

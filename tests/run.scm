@@ -287,7 +287,7 @@
 		      "----- | ------- | ------------ | ------- | -----------------\n"
 		      "`x`   | `foo-x` | `foo-x-set!` |         |                  \n"
 		      "`y`   | `foo-y` |              | `1`     | `A field comment`\n"
-		      "\nA record definition\n")
+		      "  \nA record definition  \n")
        (transform-record-definition
 	'(record-definition (name . "foo")
 			    (implementation . "defstruct")
@@ -307,7 +307,7 @@
 	'(syntax-definition (name . "foo") (comment . "A comment"))))
 
  (test "module declarations"
-       (string-append "## [module] foo\nA module description\n"
+       (string-append "## [module] foo\nA module description  \n"
 		      "A stand-alone comment\n\n#### [variable] `bar`  \n"
 		      "**type:** `fixnum`  \n**default:** `1`  \n"
 		      "A variable definition  \n\n\n"
