@@ -19,12 +19,13 @@
 ;; SOFTWARE.
 
 
-;;; Convert Chicken Scheme semantic expressions to Markdown documentation
-(module semantics2md
-    ()
+;;; Convert Chicken Scheme semantic expressions to Chicken-flavoured svnwiki
+;;; documentation
+(module semantics2svn
+    *
   (import scheme (chicken base) (chicken module)
-	  (only semantics2md-impl semantics->md))
+	  (only semantics2svn-impl semantics->svn))
 
-  (reexport (only semantics2md-impl semantics->md))
+  (reexport (only semantics2svn-impl semantics->svn))
 
-  ) ;; end module semantics2md
+  ) ;; end module semantics2svn

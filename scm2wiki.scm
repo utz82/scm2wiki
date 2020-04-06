@@ -20,12 +20,9 @@
 ;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ;; SOFTWARE.
 
-(cond-expand
-  (chicken-4 (import chicken scheme)
-	     (use args scm2wiki))
-  (chicken-5 (import scheme (chicken base) (chicken process-context)
-		     (chicken io) (chicken port)
-		     args scm-semantics semantics2md)))
+(import scheme (chicken base) (chicken process-context)
+	(chicken io) (chicken port)
+	args scm-semantics semantics2md semantics2svn)
 
 (define cmdline-opts
   (list (args:make-option (i infile)
@@ -57,7 +54,9 @@
 	(outfile (alist-ref 'o options))
 	(comment-prefix (alist-ref 'p options)))
     (write-string
-     (semantics->md
+     ((if (alist-ref 'svn options)
+	  semantics->svn
+	  semantics->md)
       (parse-semantics (read-string #f
 				    (or (and infile
 					     (open-input-file infile text:))

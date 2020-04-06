@@ -9,4 +9,6 @@
 	     (extension scm-semantics)
 	     (extension semantics2md-impl)
 	     (extension semantics2md)
+	     (extension semantics2svn-impl)
+	     (extension semantics2svn)
 	     (program scm2wiki)))

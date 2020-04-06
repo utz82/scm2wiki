@@ -5,7 +5,7 @@ ifdef RELEASE
 endif
 IMPORTFLAGS = -s -d0
 
-scm2wiki: scm2wiki.scm scm-semantics.import.so semantics2md.import.so
+scm2wiki: scm2wiki.scm scm-semantics.import.so semantics2md.import.so semantics2svn.import.so
 	$(CSC) scm2wiki.scm -b -O3 -o scm2wiki
 
 scm-semantics.so: scm-semantics.scm scm-semantics-impl.import.so
@@ -32,11 +32,23 @@ semantics2md-impl.so: semantics2md-impl.scm
 semantics2md-impl.import.so: semantics2md-impl.so
 	$(CSC) $(IMPORTFLAGS) semantics2md-impl.import.scm
 
+semantics2svn.so: semantics2svn.scm semantics2svn-impl.import.so
+	$(CSC) $(LIBFLAGS) semantics2svn.scm -j semantics2svn
+
+semantics2svn.import.so: semantics2svn.so
+	$(CSC) $(IMPORTFLAGS) semantics2svn.import.scm
+
+semantics2svn-impl.so: semantics2svn-impl.scm
+	$(CSC) $(LIBFLAGS) semantics2svn-impl.scm -j semantics2svn-impl
+
+semantics2svn-impl.import.so: semantics2svn-impl.so
+	$(CSC) $(IMPORTFLAGS) semantics2svn-impl.import.scm
+
 .PHONY: run-tests
-run-tests: scm-semantics.import.so semantics2md.import.so
+run-tests: scm-semantics.import.so semantics2md.import.so semantics2svn.import.so
 	cp -t ./ tests/run.scm && csi run.scm -e
 	-rm run.scm
 
 .PHONY: clean
 clean:
-	-rm scm2wiki *.so
+	-rm scm2wiki *.so *.o *.link *.build.sh *.install.sh

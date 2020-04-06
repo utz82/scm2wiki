@@ -2,12 +2,9 @@
 
 scm2wiki is a simple in-source documentation tool for Scheme, written in [Chicken Scheme](https://call-cc.org/). It generates documentation from comments in a Scheme source file. scm2wiki can render documentation as (Github flavored) Markdown, as well as Chicken's custom svnwiki format.
 
-Note that there are other, more advanced documentation tools available for Chicken, namely [hahn](https://wiki.call-cc.org/eggref/4/hahn), and [schematic](https://wiki.call-cc.org/eggref/5/schematic). Users of other Scheme implementations might also consider [SchemeDoc](http://people.cs.aau.dk/~normark/schemedoc/).
-
-
 ### Features
 
-scm2wiki uses stand-alone comment blocks and commented definitions in Scheme source code to generate documentation in Markdown or svnwiki format. scm2wiki will only consider comments with a specific, user-defined prefix. By default, the prefix is ";;;". scm2wiki supports Markdown in comments, and optionally transforms Markdown to svnwiki syntax.
+scm2wiki uses stand-alone comment blocks and commented definitions in Scheme source code to generate documentation in Markdown or svnwiki format. scm2wiki supports Markdown in comments, and optionally transforms Markdown to svnwiki syntax.
 
 scm2wiki can generate documentation for the following definition types:
 
@@ -27,8 +24,7 @@ There is also some limited support for simple type annotations, including [typed
 
 `$ scm2wiki [options...]`
 
-By default, scm2wiki reads from STDIN and outputs Markdown to STDOUT.
-The following options are available:
+By default, scm2wiki reads from STDIN and outputs Markdown to STDOUT. The following options are available:
 
 option                 | function
 -----------------------|-------
@@ -38,110 +34,323 @@ option                 | function
 --svn                  | output to svnwiki instead of Markdown
 --document-internals   | emit documentation for non-exported symbols
 
+scm2wiki will only consider code comments with a specific, user-defined prefix. By default, the prefix is ";;;". See the following example for a complete list of supported source code elements.
 
-### Example
+
+#### Example
 
 ````scheme
-;;; == A Level 1 Heading
-;;; ## A Level 2 Heading
-;;; A regular line
-;;; A {{line}} with ''formatting''
-;;; {{svnwiki}} syntax in comments is supported, as is **markdown** syntax
+;; this comment will be ignored
 
-;;; A procedure definition
-;;; The actual definition will be specially formatted and moved to the top of
-;;; this comment block.
-(define (my-fun arg)
-  arg)
+;;; # A Test Heading
 
-;; ignoring this one
-(define (another-fun arg)
-  '())
+(module foo
+    *
 
-;;; A plain hyperlink: https://call-cc.org
-;;; A [[#rel|relative link]] in svnwiki syntax
-;;; A [named link](https://call-cc.org]] in markdown syntax
+  (import scheme (chicken base) srfi-9 coops defstruct)
 
-;; A code example in svnwiki syntax:
-;;; <enscript highlight="scheme">
-;;; (cons 'a '(b c))
-;;; </enscript>
+  ;;; A stand-alone comment stretching multiple lines
+  ;;; *with* `formatting` **and** a [named link](https://call-cc.org)
 
-;; A code example in markdown syntax:
-;;; ```scheme
-;;; (cons 'd '(e f))
-;;; ```
+  ;;; ```Scheme
+  ;;; ;; A fenced code block
+  ;;; (+ 1 2 3)
+  ;;; ```
 
-;; Inline code blocks are currently not supported.
+  ;;; an   | interesting | table
+  ;;; ---- | ----------- | -----
+  ;;; with | actual      | content
+
+  ;; An undocumented variable definition
+  (define bar 0)
+
+  ;;; A documented variable
+  (define baz 0)
+
+  ;;; Since constants are not visible outside a translation unit, this constant
+  ;;; is not included in the documentation.
+  ;;; Override this behavior with the `--doc-internals` command line argument.
+  (define-constant bar1 0)
+
+  ;; An undocumented procedure
+  (define (foobar x)
+    x)
+
+  ;;; A documented procedure
+  (define (bazbar y)
+    (+ y y))
+
+  ;;; A record type definition using defstruct
+  (defstruct bla
+    x ;;; a field comment
+    y
+    (z 1) ;;; another field comment
+    )
+
+  ;;; A record type definition using chicken/define-record
+  (define-record blu x y)
+
+  ;;; A record type definition using srfi-9
+  (define-record-type blorb
+    (make-blorb x y)
+    blorb?
+    (x blorb-x blorb-x-set!)
+    (y blorb-y))
+
+  ;;; A very simple coops class type defintion.
+  (define-class <myclass> ()
+    (foobar))
+
+  ;;; A slightly more complex coops class definition derived from `<myclass>`.
+  (define-class <mysubclass> (<myclass>)
+    (foo
+     (bar 0)
+     (baz initform: 0 accessor: myclass-baz)))
+
+  ;;; A procedure specialization on <mysubclass>.
+  (define-method (do-foo primary: (baz <mysubclass>) another-arg)
+    42)
+
+  ) ;; end module foo
 ````
 
-becomes
+The resulting Markdown output:
 
-```
-== A Level 1 Heading
-=== A Level 2 Heading
-A regular line
-A {{line}} with ''formatting''
-{{svnwiki}} syntax in comments is supported, as is {{markdown}} syntax
-
-<procedure>(my-fun arg)</procedure>
-a procedure definition
-
-A plain hyperlink: [[https://call-cc.org]]
-A [[#rel|relative link]] in svnwiki syntax
-A [[https://call-cc.org|named link]] in markdown syntax
-
-<enscript highlight="scheme">
-(cons 'a '(b c))
-</enscript>
-
-<enscript highlight="scheme">
-(cons 'd '(e f))
-</enscript>
-```
-
-respectively
 
 ````markdown
-# A Level 1 Heading
-## A Level 2 Heading
-A regular line
-A **line** with *formatting*
-**svnwiki** syntax in comments is supported, as is **markdown** syntax
+# A Test Heading
+## [module] foo
 
-<pre>[PROCEDURE]
-<b>(my-fun arg)</b></pre>
-A procedure definition
+A stand-alone comment stretching multiple lines
+*with* `formatting` **and** a [named link](https://call-cc.org)
 
-A plain hyperlink: https://call-cc.org
-A [relative link](#rel) in svnwiki syntax
-A [named link](https://call-cc.org) in markdown syntax
+` ` `Scheme
+;; A fenced code block
+(+ 1 2 3)
+` ` `
 
-```scheme
-(cons 'a '(b c))
-```
+an   | interesting | table
+---- | ----------- | -----
+with | actual      | content
 
-```scheme
-(cons 'd '(e f))
-```
+#### [variable] `bar`
+**default:** `0`
+
+
+
+#### [variable] `baz`
+**default:** `0`
+A documented variable
+
+
+#### [procedure] `(foobar X)`
+
+
+
+
+#### [procedure] `(bazbar Y)`
+
+A documented procedure
+
+
+### [record] `bla`
+**[constructor] `(make-bla #!key X (Y 1) (Z 1))`**
+**[predicate] `bla?`**
+**implementation:** `defstruct`
+
+field | getter  | setter       | default | type     | comment
+----- | ------- | ------------ | ------- | -------- | ------------------------------
+`x`   | `bla-x` | `bla-x-set!` |         |          | `a field comment`
+`y`   | `bla-y` | `bla-y-set!` | `1`     |          |
+`z`   | `bla-z` | `bla-z-set!` | `1`     | `number` | `a field with type annotation`
+
+A record type definition using defstruct
+
+
+### [record] `blu`
+**[constructor] `(make-blu X Y)`**
+**[predicate] `blu?`**
+**implementation:** `define-record`
+
+field | getter  | setter
+----- | ------- | ------------
+`x`   | `blu-x` | `blu-x-set!`
+`y`   | `blu-y` | `blu-y-set!`
+
+A record type definition using chicken/define-record
+
+
+### [record] `blorb`
+**[constructor] `(make-blorb X Y)`**
+**[predicate] `blorb?`**
+**implementation:** `srfi-9`
+
+field | getter    | setter
+----- | --------- | --------------
+`x`   | `blorb-x` | `blorb-x-set!`
+`y`   | `blorb-y` |
+
+A record type definition using srfi-9
+
+
+### [record] `blurp`
+**[constructor] `(make-blurp X Y)`**
+**[predicate] `blurp?`**
+**implementation:** `srfi-9`
+
+field | getter    | setter
+----- | --------- | --------------
+`x`   | `blurp-x` |
+`y`   | `blurp-y` | `blurp-y-set!`
+
+A record type definition using strange but legal formatting
+
+
+### [class] `<myclass>`
+slot: `foobar`
+
+
+A very simple coops class type defintion.
+
+
+### [class] `<mysubclass>`
+**inherits from:** [`<myclass>`](#class-ltmyclassgt)
+
+slot  | initform | accessor
+----- | -------- | -------------
+`foo` |          |
+`bar` | `0`      |
+`baz` | `0`      | `myclass-baz`
+
+A slightly more complex coops class definition derived from `<myclass>`.
+
+**[method] `(do-foo primary: (BAZ <mysubclass>) ANOTHER-ARG)`**
+A procedure specialization on <mysubclass>.
+
 ````
 
-Feel free to run scm2wiki on it's own source for a more detailed example.
+The resulting svnwiki output:
+
+```
+== A Test Heading
+== Module foo
+
+A stand-alone comment stretching multiple lines
+''with'' {{formatting}} '''and''' a [[https://call-cc.org|named link]]
+
+<enscript highlight=#"scheme#">;; A fenced code block
+(+ 1 2 3)</enscript>
+
+
+
+<table><tr><th>an   </th><th>interesting</th><th>table</th></tr>
+<tr><td>with </td><td>actual</td><td>content</td></tr>
+
+</table>
+
+<constant>bar</constant>
+; default : {{0}}
+
+
+
+<constant>baz</constant>
+; default : {{0}}
+A documented variable
+
+
+<procedure>(foobar X)</procedure>
+
+
+
+<procedure>(bazbar Y)</procedure>
+
+A documented procedure
+
+
+<record>bla</record>
+; constructor : {{(make-bla #!key X (Y 1) (Z 1))}}
+; predicate : {{bla?}}
+; implementation : {{defstruct}}
+
+<table><tr><th>field</th> <th>getter</th> <th>setter</th> <th>default</th> <th>type</th> <th>comment</th></tr><tr><td>{{x}}</td> <td>{{bla-x}}</td> <td>{{bla-x-set!}}</td> <td></td> <td></td> <td>{{a field comment}}</td></tr>
+<tr><td>{{y}}</td> <td>{{bla-y}}</td> <td>{{bla-y-set!}}</td> <td>{{1}}</td> <td></td> <td></td></tr>
+<tr><td>{{z}}</td> <td>{{bla-z}}</td> <td>{{bla-z-set!}}</td> <td>{{1}}</td> <td>{{number}}</td> <td>{{a field with type annotation}}</td></tr></table>
+
+A record type definition using defstruct
+
+
+<record>blu</record>
+; constructor : {{(make-blu X Y)}}
+; predicate : {{blu?}}
+; implementation : {{define-record}}
+
+<table><tr><th>field</th> <th>getter</th> <th>setter</th></tr><tr><td>{{x}}</td> <td>{{blu-x}}</td> <td>{{blu-x-set!}}</td></tr>
+<tr><td>{{y}}</td> <td>{{blu-y}}</td> <td>{{blu-y-set!}}</td></tr></table>
+
+A record type definition using chicken/define-record
+
+
+<record>blorb</record>
+; constructor : {{(make-blorb X Y)}}
+; predicate : {{blorb?}}
+; implementation : {{srfi-9}}
+
+<table><tr><th>field</th> <th>getter</th> <th>setter</th></tr><tr><td>{{x}}</td> <td>{{blorb-x}}</td> <td>{{blorb-x-set!}}</td></tr>
+<tr><td>{{y}}</td> <td>{{blorb-y}}</td> <td></td></tr></table>
+
+A record type definition using srfi-9
+
+
+=== Class <myclass>
+<class><myclass></class>
+
+
+; slot : {{foobar}}
+
+
+A very simple coops class type defintion.
+
+
+=== Class <mysubclass>
+<class><mysubclass></class>
+
+; inherits from : [[#Class-<myclass>|<myclass>]]
+
+<table><tr><th>slot</th> <th>initform</th> <th>accessor</th></tr><tr><td>{{foo}}</td> <td></td> <td></td></tr>
+<tr><td>{{bar}}</td> <td>{{0}}</td> <td></td></tr>
+<tr><td>{{baz}}</td> <td>{{0}}</td> <td>{{myclass-baz}}</td></tr></table>
+
+A slightly more complex coops class definition derived from {{<myclass>}}.
+
+<method>(do-foo primary: (BAZ <mysubclass>) ANOTHER-ARG)</method>
+A procedure specialization on <mysubclass>.
+```
+
+
+### Alternatives to scm2wiki
+
+If you find that scm2wiki isn't suited for your needs, consider one of these alternatives:
+
+- [hahn](https://wiki.call-cc.org/eggref/4/hahn)
+- [schematic](https://wiki.call-cc.org/eggref/5/schematic).
+- [SchemeDoc](http://people.cs.aau.dk/~normark/schemedoc/).
 
 
 ### TODO
 
-* [markdown] remove unsupported svnwiki tags
 * [markdown] transform variadic procedure definitions, svnwiki style
 * [markdown] automatic toc generation
+* [svnwiki] support for markdown lists, images, plain links, formatted text in tables
 * [all] better support for type annotations
 * [all] better support for macro definitions
+* [all] support parameters
+* ~~[markdown] remove unsupported svnwiki tags~~ *done*
 * ~~[all] more robust command line arguments parsing~~ *done*
 * ~~[all] support for macro, record, constant definitions etc.~~ *done*
 
 
 ### Contributing
 
-Contributions to scm2wiki are very welcome! See the above TODO list for issues that need help.
+Contributions to scm2wiki are very welcome. See the above TODO list for issues that need help.
 If you're unsure how to contribute or have any questions, feel free to open an
 [issue](https://github.com/utz82/scm2wiki/issues).

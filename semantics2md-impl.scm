@@ -39,14 +39,6 @@
   (define (aspect->string aspect-key semantic)
     (or (alist-ref aspect-key (cdr semantic)) ""))
 
-  (define (type-annotation->string definition)
-    (if (alist-ref 'type-annotation (cdr definition))
-	(string-append "type: "
-		       (alist-ref 'type (alist-ref 'type-annotation
-						   (cdr definition)))
-		       ", ")
-	""))
-
   (define (transform-generic-definition d)
     (let ((type-annotation (alist-ref 'type-annotation (cdr d)))
 	  (val (aspect->string 'value d)))

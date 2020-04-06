@@ -1,26 +1,33 @@
-;; this comment should be ignored
+;; this comment will be ignored
 
-;;; # A Test Source
+;;; # A Test Heading
 
 (module foo
     *
 
-  (import scheme (chicken base) (chicken module) (chicken string)
-	  coops defstruct)
+  (import scheme (chicken base) srfi-9 coops defstruct)
 
-  ;;; A stand-alone comment
-  ;;; stretching multiple lines
-  ;;;   with extra spaces in front of a line
+  ;;; A stand-alone comment stretching multiple lines
+  ;;; *with* `formatting` **and** a [named link](https://call-cc.org)
 
-  ;;; A single-line stand-alone comment
+  ;;; ```Scheme
+  ;;; ;; A fenced code block
+  ;;; (+ 1 2 3)
+  ;;; ```
 
-  ;; an undocumented variable definition
+  ;;; an   | interesting | table
+  ;;; ---- | ----------- | -----
+  ;;; with | actual      | content
+
+  ;; An undocumented variable definition
   (define bar 0)
 
-  ;;; A very important variable
+  ;;; A documented variable
   (define baz 0)
 
-  ;;; A very important constant
+  ;;; Since constants are not visible outside a translation unit, this constant
+  ;;; is not included in the documentation.
+  ;;; Override this behavior with the `--doc-internals` command line argument.
   (define-constant bar1 0)
 
   ;; An undocumented procedure
@@ -34,8 +41,8 @@
   ;;; A record type definition using defstruct
   (defstruct bla
     x ;;; a field comment
-    y
-    (z 1) ;;; another field comment
+    (y 1)
+    ((z 1) : number) ;;; a field with type annotation
     )
 
   ;;; A record type definition using chicken/define-record
@@ -63,17 +70,18 @@
 
     ) ;; a hidden comment
 
-  ;;; A coops class type defintion.
+  ;;; A very simple coops class type defintion.
   (define-class <myclass> ()
+    (foobar))
+
+  ;;; A slightly more complex coops class definition derived from `<myclass>`.
+  (define-class <mysubclass> (<myclass>)
     (foo
      (bar 0)
      (baz initform: 0 accessor: myclass-baz)))
 
-  ;;; A coops class definition derived from `<myclass>`.
-  (define-class <mysubclass> (<myclass>)
-    (foobar))
-
-  (define-method (do-foo primary: (baz <myclass>) another-arg)
+  ;;; A procedure specialization on <mysubclass>.
+  (define-method (do-foo primary: (baz <mysubclass>) another-arg)
     42)
 
   ) ;; end module foo

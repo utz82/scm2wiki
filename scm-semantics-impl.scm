@@ -292,7 +292,14 @@
 	   "(make-" record-name " #!key "
 	   (string-intersperse
 	    (map (lambda (field)
-		   (alist-ref 'name (cdr field)))
+		   (if (alist-ref 'default (cdr field))
+		       (string-append "("
+				      (string-upcase
+				       (alist-ref 'name (cdr field)))
+				      " "
+				      (alist-ref 'default (cdr field))
+				      ")")
+		       (string-upcase (alist-ref 'name (cdr field)))))
 		 fields))
 	   ")")))
 
@@ -330,7 +337,8 @@
        (cons 'constructor
 	     (string-append "(make-" name " "
 			    (string-intersperse
-			     (map (cute alist-ref 'name <>)
+			     (map (lambda (id)
+				    (string-upcase (alist-ref 'name id)))
 				  (map cdr args)))
 			    ")")))))
 
@@ -364,7 +372,7 @@
 		(_ (one-or-more (in char-set:whitespace)))
 		(name (as-string an-atom))
 		(_ (one-or-more (in char-set:whitespace)))
-		(constructor (as-string a-cons))
+		(constructor a-signature)
 		(_ (one-or-more (in char-set:whitespace)))
 		(predicate (as-string an-atom))
 		(_ (one-or-more (in char-set:whitespace)))
@@ -374,7 +382,8 @@
 			     (filter-map-results '(name implementation
 							constructor predicate
 							fields comment)
-						 (list name "srfi-9" constructor
+						 (list name "srfi-9"
+						       (cdr constructor)
 						       predicate fields
 						       comment))))))
 

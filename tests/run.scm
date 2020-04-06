@@ -108,7 +108,7 @@
 				  "foo"))
 
   (test "generate defstruct constructor"
-	'(constructor . "(make-foo #!key x y)")
+	'(constructor . "(make-foo #!key (X 1) Y)")
 	(generate-defstruct-constructor
 	 (list (parse (a-record-field ";;;")
 		      "((x 1) : fixnum)")
@@ -117,7 +117,7 @@
 	 "foo"))
 
   (test "destructuring defstruct record definition"
-	'(record-definition "A defstruct" "defstruct" "(make-foo #!key x y)"
+	'(record-definition "A defstruct" "defstruct" "(make-foo #!key X (Y 1))"
 			    "foo?" "x" "foo-x" "foo-x-set!"
 			    "y" "foo-y" "foo-y-set!" "1" "fixnum")
 	(let* ((res (parse (a-defstruct ";;;")
@@ -140,7 +140,7 @@
 		(alist-ref 'type (cdadr fields)))))
 
   (test "destructuring define-record definition"
-	'(record-definition "A define-record" "define-record" "(make-foo x y)"
+	'(record-definition "A define-record" "define-record" "(make-foo X Y)"
 			    "foo?" "x" "foo-x" "foo-x-set!"
 			    "y" "foo-y" "foo-y-set!" "fixnum")
 	(let* ((res (parse (a-define-record ";;;")
@@ -180,7 +180,7 @@
 
   (test "destructuring srfi-9 record definition"
 	'(record-definition (name . "foo") (implementation . "srfi-9")
-			    (constructor . "(make-foo x y)")
+			    (constructor . "(make-foo X Y)")
 			    (predicate . "foo?")
 			    (fields (field (name . "x") (getter . "foo-x"))
 				    (field (name . "y") (getter . "foo-y")
