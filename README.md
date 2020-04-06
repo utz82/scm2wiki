@@ -224,19 +224,6 @@ field | getter    | setter
 A record type definition using srfi-9
 
 
-### [record] `blurp`
-**[constructor] `(make-blurp X Y)`**
-**[predicate] `blurp?`**
-**implementation:** `srfi-9`
-
-field | getter    | setter
------ | --------- | --------------
-`x`   | `blurp-x` |
-`y`   | `blurp-y` | `blurp-y-set!`
-
-A record type definition using strange but legal formatting
-
-
 ### [class] `<myclass>`
 slot: `foobar`
 
