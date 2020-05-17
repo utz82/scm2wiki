@@ -62,6 +62,7 @@
   (define a-string
     (sequence (is #\")
 	      (zero-or-more (any-of (char-seq "\\\"")
+				    (is #\\)
 				    (in (char-set-difference char-set:printing
 							     (char-set #\")))))
 	      (is #\")))
@@ -83,7 +84,8 @@
 
   ;; TODO quoted symbols, inline comments
   (define a-cons
-    (recursive-parser (sequence (maybe (in (char-set #\' #\` #\,)))
+    (recursive-parser (sequence (maybe (any-of (in (char-set #\' #\` #\,))
+					       (char-seq ",@")))
 				(is #\()
 				maybe-whitespace
 				(zero-or-more (sequence (any-of an-atom a-cons)
