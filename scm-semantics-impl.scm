@@ -77,7 +77,6 @@
   (define an-atom
     (any-of a-string a-piped-symbol
 	    (sequence (is #\#)
-		      (is #\\)
 		      (in (char-set #\( #\))))
 	    (one-or-more (any-of (in (char-set-difference
 				      char-set:graphic (char-set #\( #\))))))))
