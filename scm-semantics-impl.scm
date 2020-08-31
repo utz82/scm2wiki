@@ -23,7 +23,7 @@
 
 (module scm-semantics-impl
     *
-  (import scheme (chicken base) (chicken module) (chicken string)
+  (import scheme (chicken base) (chicken module) (chicken string) (chicken port)
 	  srfi-1 srfi-13 srfi-14 comparse)
 
   (define-constant default-comment-prefix ";;;")
@@ -114,7 +114,33 @@
 		(_ (is #\newline)))
 	       (result `((identifier . ,identifier) (type . ,annotation)))))
 
-  ;;; TODO output type-annotation
+  (define (resolve-manual-annotation comment name val type-annotation)
+    (and-let* ((annotation-str (parse (as-string
+				       (followed-by a-cons
+						    (any-of end-of-input
+							    (is #\newline))))
+				      comment))
+	       (annotation (with-input-from-string annotation-str read))
+	       (rest-comment (string-intersperse
+			      (cdr (string-split comment "\n" #t))
+			      "\n")))
+      (case (car annotation)
+	((procedure)
+	 (cons 'procedure-definition
+	       (filter-map-results
+		'(name type-annotation signature body comment)
+		(list name
+		      type-annotation
+		      (cdr (parse a-signature (->string (cadr annotation))))
+		      val
+		      rest-comment))))
+	((constant)
+	 (cons 'constant-definition
+	       (filter-map-results
+		'(name type-annotation value comment)
+		(list name type-annotation val rest-comment))))
+	(else #f))))
+
   (define (a-generic-definition comment-prefix input-symbol result-symbol)
     (sequence* ((comment (maybe (a-comment comment-prefix)))
 		(_ (zero-or-more (in char-set:blank)))
@@ -128,10 +154,13 @@
 		(_ maybe-whitespace)
 		(_ (is #\)))
 		(_ maybe-whitespace))
-	       (result (cons result-symbol
-			     (filter-map-results
-			      '(name type-annotation value comment)
-			      (list name type val comment))))))
+	       (result
+		(or (and comment
+			 (resolve-manual-annotation comment name val type))
+		    (cons result-symbol
+			  (filter-map-results
+			   '(name type-annotation value comment)
+			   (list name type val comment)))))))
 
   (define (a-constant-definition comment-prefix)
     (a-generic-definition comment-prefix 'define-constant 'constant-definition))

@@ -25,6 +25,15 @@
   ;;; A documented variable
   (define baz 0)
 
+  ;;; (procedure (foo X))
+  ;;; A manual annotation in the first line of a comment overrides any auto-
+  ;;; detected definition type. This is useful to mark closures, which scm2wiki
+  ;;; would class as variable definitions otherwise.
+  (define foo
+    (let ((z #t))
+      (lambda (x)
+	(set! z x))))
+
   ;;; Since constants are not visible outside a translation unit, this constant
   ;;; is not included in the documentation.
   ;;; Override this behavior with the `--doc-internals` command line argument.

@@ -87,6 +87,15 @@ scm2wiki will only consider code comments with a specific, user-defined prefix. 
   ;;; A documented variable
   (define baz 0)
 
+  ;;; (procedure (foo X))
+  ;;; A manual annotation in the first line of a comment overrides any auto-
+  ;;; detected definition type. This is useful to mark closures, which scm2wiki
+  ;;; would class as variable definitions otherwise.
+  (define foo
+    (let ((z #t))
+      (lambda (x)
+	(set! z x))))
+
   ;;; Since constants are not visible outside a translation unit, this constant
   ;;; is not included in the documentation.
   ;;; Override this behavior with the `--doc-internals` command line argument.
@@ -167,6 +176,12 @@ with | actual      | content
 #### [variable] `baz`
 **default:** `0`
 A documented variable
+
+
+#### [procedure] `(foo X)`
+A manual annotation in the first line of a comment overrides any auto-
+detected definition type. This is useful to mark closures, which scm2wiki
+would class as variable definitions otherwise.
 
 
 #### [procedure] `(fooproc X)`
@@ -276,6 +291,13 @@ A stand-alone comment stretching multiple lines
 A documented variable
 
 
+<procedure>(foo X)</procedure>
+
+A manual annotation in the first line of a comment overrides any auto-
+detected definition type. This is useful to mark closures, which scm2wiki
+would class as variable definitions otherwise.
+
+
 <procedure>(fooproc X)</procedure>
 
 
@@ -363,6 +385,8 @@ If you find that scm2wiki isn't suited for your needs, consider one of these alt
 
 
 ### Version History
+
+0.3.0 - Manual annotations for generic definitions
 
 0.2.0 - Support for syntax, records, procedure signatures, coops classes
 
