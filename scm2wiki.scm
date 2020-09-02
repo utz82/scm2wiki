@@ -29,6 +29,8 @@
 			  #:required "input file name")
 	(args:make-option (o outfile)
 			  #:required "output file name")
+	(args:make-option (a anchors)
+			  #:none "create anchor links (markdown only)")
 	(args:make-option (p prefix)
 			  #:required "documentation comment prefix string")
 	(args:make-option (svn)
@@ -62,7 +64,8 @@
 					     (open-input-file infile text:))
 					(current-input-port)))
 		       (or comment-prefix ";;;"))
-      (alist-ref 'doc-internals options))
+      internals: (alist-ref 'doc-internals options)
+      anchors: (alist-ref 'a options))
      #f
      (or (and outfile
 	      (open-output-file outfile text:))

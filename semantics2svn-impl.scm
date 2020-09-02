@@ -361,7 +361,8 @@
 		   (alist-ref 'body (cdr d))))))
 	"\n\n"))))
 
-  (define (svn-transform-source-element source-element document-internals
+  (define (svn-transform-source-element source-element
+					document-internals
 					#!optional (method-definitions '()))
     (case (car source-element)
       ((comment)
@@ -384,7 +385,7 @@
       (else (error (string-append "Unsupported source element "
 				  (->string (car source-element)))))))
 
-  (define (semantics->svn source #!optional document-internals)
+  (define (semantics->svn source #!key internals anchors)
     (unless (eqv? 'source (car source))
       (error "Not a semantic source expression."))
     (let* ((is-method? (lambda (elem) (eqv? 'method-definition (car elem))))
@@ -393,7 +394,7 @@
 		     (string-intersperse
   		      (map (lambda (elem)
   			     (svn-transform-source-element
-  			      elem document-internals method-definitions))
+  			      elem internals method-definitions))
   			   (remove is-method? (cdr source)))
   		      "\n")
   		     "\n")))

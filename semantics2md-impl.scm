@@ -39,16 +39,23 @@
   (define (aspect->string aspect-key semantic)
     (or (alist-ref aspect-key (cdr semantic)) ""))
 
+  (define (definition->anchor semantic)
+    (string-append "<a id=\"def-"
+		   (string-delete (lambda (c) (memq c '(#\< #\> #\# #\% #\")))
+				  (alist-ref 'name (cdr semantic)))
+		   "\"></a> "))
+
   (define (transform-comment definition)
     (if (alist-ref 'comment (cdr definition))
 		       (string-append (aspect->string 'comment definition)
 				      "  \n")
 		       ""))
 
-  (define (transform-generic-definition d)
+  (define (transform-generic-definition d write-anchors)
     (let ((type-annotation (alist-ref 'type-annotation (cdr d)))
 	  (val (aspect->string 'value d)))
       (string-append "#### "
+		     (if write-anchors (definition->anchor d) "")
 		     (if (eqv? 'constant-definition (car d))
 			 "[constant] "
 			 "[variable] ")
@@ -71,8 +78,10 @@
 		     "  \n"
 		     (transform-comment d))))
 
-  (define (transform-procedure-definition d)
-    (string-append "#### [procedure] "
+  (define (transform-procedure-definition d write-anchors)
+    (string-append "#### "
+		   (if write-anchors (definition->anchor d) "")
+		   "[procedure] "
 		   (make-inline-code-block (aspect->string 'signature d))
 		   "\n"
 		   (if (alist-ref 'type-annotation (cdr d))
@@ -129,8 +138,10 @@
 	    "\n")
 	   "\n"))))
 
-  (define (transform-record-definition d)
-    (string-append "### [record] "
+  (define (transform-record-definition d write-anchors)
+    (string-append "### "
+		   (if write-anchors (definition->anchor d) "")
+		   "[record] "
 		   (make-inline-code-block (aspect->string 'name d))
 		   "  \n**[constructor] "
 		   (make-inline-code-block (aspect->string 'constructor d))
@@ -146,8 +157,10 @@
 		   (transform-comment d)))
 
   ;; TODO extract the signature
-  (define (transform-syntax-definition d)
-    (string-append "#### [syntax] "
+  (define (transform-syntax-definition d write-anchors)
+    (string-append "#### "
+		   (if write-anchors (definition->anchor d) "")
+		   "[syntax] "
 		   (make-inline-code-block (if (alist-ref 'signature (cdr d))
 					       (aspect->string 'signature d)
 					       (aspect->string 'name d)))
@@ -167,10 +180,12 @@
 		   (aspect->string 'comment d)
 		   "  \n\n"))
 
-  (define (transform-class-definition d methods)
+  (define (transform-class-definition d write-anchors methods)
     (let ((used-methods (find-class-methods (aspect->string 'name d)
 					    methods)))
-      (string-append "### [class] "
+      (string-append "### "
+		     (if write-anchors (definition->anchor d) "")
+		     "[class] "
 		     (make-inline-code-block (aspect->string 'name d))
 		     (if (null? (alist-ref 'superclasses (cdr d)))
 			 ""
@@ -202,7 +217,8 @@
 			 "")
 		     "\n")))
 
-  (define (transform-module-declaration d document-internals methods)
+  (define (transform-module-declaration
+	   d document-internals write-anchors methods)
     (let* ((is-method? (lambda (elem) (eqv? 'method-definition (car elem))))
 	   (method-definitions (append methods
 				       (filter is-method?
@@ -216,6 +232,7 @@
 	(map (lambda (elem)
 	       (transform-source-element elem
 					 document-internals
+					 write-anchors
 					 method-definitions))
 	     (remove
 	      is-method?
@@ -233,37 +250,48 @@
 		   (alist-ref 'body (cdr d))))))
 	"\n\n"))))
 
-  (define (transform-source-element source-element document-internals
+  (define (transform-source-element source-element
+				    document-internals
+				    write-anchors
 				    #!optional (method-definitions '()))
     (case (car source-element)
       ((comment) (cdr source-element))
       ((constant-definition variable-definition)
-       (transform-generic-definition source-element))
-      ((module-declaration) (transform-module-declaration source-element
-							  document-internals
-							  method-definitions))
-      ((procedure-definition) (transform-procedure-definition source-element))
-      ((record-definition) (transform-record-definition source-element))
-      ((syntax-definition) (transform-syntax-definition source-element))
-      ((class-definition) (transform-class-definition source-element
-						      method-definitions))
+       (transform-generic-definition source-element write-anchors))
+      ((module-declaration)
+       (transform-module-declaration source-element
+				     document-internals
+				     write-anchors
+				     method-definitions))
+      ((procedure-definition)
+       (transform-procedure-definition source-element write-anchors))
+      ((record-definition)
+       (transform-record-definition source-element write-anchors))
+      ((syntax-definition)
+       (transform-syntax-definition source-element write-anchors))
+      ((class-definition)
+       (transform-class-definition source-element
+				   write-anchors
+				   method-definitions))
       (else (error (string-append "Unsupported source element "
 				  (->string (car source-element)))))))
 
   ;;; Generate documentation in Markdown format from  a semantic SOURCE
   ;;; expression (as produced by parse-semantics from the scm-semantics module).
   ;;; If the source contains a module declaration, only exported symbols will be
-  ;;; included in the resulting documentation, unless DOCUMENT-INTERNALS is
-  ;;; `#t`.
-  (define (semantics->md source #!optional document-internals)
+  ;;; included in the resulting documentation, unless INTERNALS is `#t`. If
+  ;;; ANCHORS is `#t`, manual anchor links will be created for each definition,
+  ;;; where the `id` property is the name of the defined binding, prefixed with
+  ;;; `-def`.
+  (define (semantics->md source #!key internals anchors)
     (unless (eqv? 'source (car source))
       (error "Not a semantic source expression."))
     (let* ((is-method? (lambda (elem) (eqv? 'method-definition (car elem))))
 	   (method-definitions (filter is-method? (cdr source))))
       (string-append (string-intersperse
 		      (map (lambda (elem)
-			     (transform-source-element elem document-internals
-						       method-definitions))
+			     (transform-source-element
+			      elem internals anchors method-definitions))
 			   (remove is-method? (cdr source)))
 		      "\n")
 		     "\n")))

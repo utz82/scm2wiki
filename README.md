@@ -52,9 +52,12 @@ option                     | function
 `-o`, `--outfile=FILENAME` | specify an output file
 `-p`, `--prefix=STRING`    | change the comment prefix (default `";;;"`)
 `--svn`                    | output to svnwiki instead of Markdown
+`-a`                       | create anchor links (Markdown only)
 `--document-internals`     | emit documentation for non-exported symbols
 
 scm2wiki will only consider code comments with a specific, user-defined prefix. By default, the prefix is ";;;". See the following example for a complete list of supported source code elements.
+
+If the `-a` flag is specified, anchor links will be created for each defined binding. This allows for easy cross-referencing of definitions. The anchor id is the name of the binding, prefixed by `def-`. Characters not allowed in URLs are stripped. This feature works only in Markdown mode.
 
 
 #### Example
@@ -386,7 +389,7 @@ If you find that scm2wiki isn't suited for your needs, consider one of these alt
 
 ### Version History
 
-0.3.0 - Manual annotations for generic definitions
+0.3.0 - Manual annotations for generic definitions, anchor links, various bugfixes
 
 0.2.0 - Support for syntax, records, procedure signatures, coops classes
 
