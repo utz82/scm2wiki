@@ -521,11 +521,15 @@
 			   (cons (car signature)
 				 (cons (or (cadr signature)
 					   '())
-				       (append (map (lambda (x)
-						      (list (string-upcase (car x))
-							    (cdr x)))
-						    (caddr signature))
-					       (list (transform-arguments (cadddr signature))))))))))
+				       (append
+					(map (lambda (x)
+					       (list (string-upcase (car x))
+						     (cdr x)))
+					     (caddr signature))
+					(if (null? (cadddr signature))
+					    '()
+					    (list (transform-arguments
+						   (cadddr signature)))))))))))
 
   (define (a-method-definition comment-prefix)
     (sequence* ((comment (maybe (a-comment comment-prefix)))
