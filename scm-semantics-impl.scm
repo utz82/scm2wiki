@@ -516,7 +516,9 @@
 		(qualifier (maybe (as-string an-atom)))
 		(_ maybe-whitespace)
 		(specialized-args (zero-or-more a-specialized-argument))
-		(rest-args (zero-or-more (as-string a-sexp)))
+		(rest-args (zero-or-more
+			    (as-string (sequence a-sexp
+						 maybe-whitespace))))
 		(_ (is #\))))
 	       (result (list name qualifier specialized-args rest-args))))
 
