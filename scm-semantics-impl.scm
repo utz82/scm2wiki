@@ -461,10 +461,10 @@
 	    (sequence* ((_ (is #\())
 			(name (as-string an-atom))
 			(_ (one-or-more (in char-set:whitespace)))
-			(slot-options (one-or-more
-				       (sequence* ((s (as-string a-sexp))
-						   (_ maybe-whitespace))
-						  (result s))))
+			(slot-options
+			 (one-or-more (sequence* ((s (as-string a-sexp))
+						  (_ maybe-whitespace))
+						 (result s))))
 			(_ (is #\))))
 		       (result (cons 'slot (append `((name . ,name))
 						   (parse-slot-options
@@ -479,13 +479,19 @@
 		(_ maybe-whitespace)
 		(superclasses a-superclass-list)
 		(_ maybe-whitespace)
-		(slots (enclosed-by (is #\()
-				    (one-or-more
-				     (sequence* ((slot (a-class-slotspec
-							comment-prefix))
-						 (_ maybe-whitespace))
-						(result slot)))
-				    (is #\))))
+		(slots (enclosed-by
+			(is #\()
+			(one-or-more
+			 (sequence* ((_ maybe-whitespace)
+				     (_ (zero-or-more (a-comment-line ";")))
+				     (_ maybe-whitespace)
+				     (slot (a-class-slotspec
+					    comment-prefix))
+				     (_ maybe-whitespace)
+				     (_ (zero-or-more (a-comment-line ";")))
+				     (_ maybe-whitespace))
+				    (result slot)))
+			(is #\))))
 		(_ (is #\))))
 	       (result (cons 'class-definition
 			     (filter-map-results
