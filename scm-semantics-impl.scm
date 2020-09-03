@@ -610,7 +610,7 @@
 			      (list name comment
 				    (if (pair? exports)
 					exports
-					(extract-exported-symbols (cdr body)))
+					(extract-exported-symbols body))
 				    body))))))
 
   ;;; Parse the source code string **source** into an s-expression describing
