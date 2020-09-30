@@ -168,7 +168,7 @@ A stand-alone comment stretching multiple lines
 (+ 1 2 3)
 ` ` `
 
-an   | interesting | table
+An   | Interesting | Table
 ---- | ----------- | -----
 with | actual      | content
 
@@ -207,7 +207,7 @@ the syntax' signature. scm2wiki does not auto-detect syntax signatures.
 **[predicate] `bla?`**
 **implementation:** `defstruct`
 
-field | getter  | setter       | default | type     | comment
+Field | Getter  | Setter       | Default | Type     | Comment
 ----- | ------- | ------------ | ------- | -------- | ------------------------------
 `x`   | `bla-x` | `bla-x-set!` |         |          | `a field comment`
 `y`   | `bla-y` | `bla-y-set!` | `1`     |          |
@@ -234,7 +234,7 @@ A record type definition using chicken/define-record
 **[predicate] `blorb?`**
 **implementation:** `srfi-9`
 
-field | getter    | setter
+Field | Fetter    | Setter
 ----- | --------- | --------------
 `x`   | `blorb-x` | `blorb-x-set!`
 `y`   | `blorb-y` |
@@ -252,7 +252,7 @@ A very simple coops class type defintion.
 ### [class] `<mysubclass>`
 **inherits from:** [`<myclass>`](#class-ltmyclassgt)
 
-slot  | initform | accessor
+Slot  | Initform | Accessor
 ----- | -------- | -------------
 `foo` |          |
 `bar` | `0`      |
