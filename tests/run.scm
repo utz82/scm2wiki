@@ -247,7 +247,8 @@
 			      (value . "1")
 			      (type-annotation (identifier . "foo")
 					       (type . "fixnum"))
-			      (comment . "A variable definition"))))
+			      (comment . "A variable definition"))
+	#f))
 
  (test "procedure definitions"
        (string-append "#### [procedure] `(foo x !#optional y)`\n"
@@ -259,7 +260,8 @@
 	  (comment . "A procedure definition")
 	  (signature . "(foo x !#optional y)")
 	  (type-annotation (identifier . "foo")
-			   (type . "(fixnum #!optional bool) -> . bool")))))
+			   (type . "(fixnum #!optional bool) -> . bool")))
+	#f))
 
  (test "table generation"
        (string-append
@@ -300,11 +302,14 @@
 				    (field (name . "y")
 					   (default . "1")
 					   (getter . "foo-y")
-					   (comment . "A field comment"))))))
+					   (comment . "A field comment"))))
+	#f))
+
  (test "syntax definitions"
        "#### [syntax] `foo`  \nA comment  \n"
        (transform-syntax-definition
-	'(syntax-definition (name . "foo") (comment . "A comment"))))
+	'(syntax-definition (name . "foo") (comment . "A comment"))
+	#f))
 
  (test "module declarations"
        (string-append "## [module] foo\nA module description  \n"
@@ -327,6 +332,7 @@
 				    (name . "baz")
 				    (signature . "(baz X Y)")
 				    (comment . "A procedure definition"))))
+	#f
 	#f
 	'())))
 
