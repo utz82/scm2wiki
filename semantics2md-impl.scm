@@ -240,13 +240,19 @@
 		  (alist-ref 'body (cdr d))
 		  (remove
 		   (lambda (def)
-		     (and (member (car def)
-				  '(procedure-definition constant-definition
-							 variable-definition
-							 class-definition
-							 record-definition))
-			  (not (member (alist-ref 'name (cdr def))
-				       (alist-ref 'exported-symbols (cdr d))))))
+		     (or (and (member (car def)
+				      '(procedure-definition constant-definition
+							     variable-definition
+							     class-definition))
+			      (not (member (alist-ref 'name (cdr def))
+					   (alist-ref 'exported-symbols
+						      (cdr d)))))
+			 (and (eqv? (car def) 'record-definition)
+			      (not (member (string-append
+					    "make-"
+					    (alist-ref 'name (cdr def)))
+					   (alist-ref 'exported-symbols
+						      (cdr d)))))))
 		   (alist-ref 'body (cdr d))))))
 	"\n\n"))))
 
