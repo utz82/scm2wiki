@@ -389,6 +389,8 @@ If you find that scm2wiki isn't suited for your needs, consider one of these alt
 
 ### Version History
 
+0.3.2 - Bugfix: Properly parse strings whose last character is a backslash, don't hide record definitions when their constructor is public
+
 0.3.1 - Bugfix: Parenthesis characters are valid atoms
 
 0.3.0 - Manual annotations for generic definitions, anchor links, various bugfixes

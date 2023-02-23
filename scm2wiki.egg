@@ -1,5 +1,5 @@
 ((license "MIT")
- (version 0.3.1)
+ (version 0.3.2)
  (category doc-tools)
  (author "Michael Neidel")
  (synopsis "An auto-documentation tool for CHICKEN Scheme.")
