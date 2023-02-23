@@ -61,8 +61,8 @@
 
   (define a-string
     (sequence (is #\")
-	      (zero-or-more (any-of (char-seq "\\\"")
-				    (is #\\)
+	      (zero-or-more (any-of (char-seq "\\\\")
+				    (char-seq "\\\"")
 				    (in (char-set-difference char-set:printing
 							     (char-set #\")))))
 	      (is #\")))
