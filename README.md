@@ -38,7 +38,11 @@ For svnwiki output, scm2wiki translates Markdown text. However, translation is l
 
 #### Installation
 
-scm2wiki is not yet an official CHICKEN egg. Install by cloning or downloading the repository, then run `$chicken-install` with no arguments in the main repository directory.
+scm2wiki is available from the official Chicken Egg repository. To install it, simply run
+
+```
+$ chicken-install scm2wiki
+```
 
 #### Command Line Usage
 
