@@ -1,5 +1,6 @@
 (repo git "https://github.com/utz82/scm2wiki.git")
 
 (uri targz "https://github.com/utz82/scm2wiki/archive/{egg-release}.tar.gz")
+(release "0.3.3")
 (release "0.3.2")
 (release "0.3.1")
