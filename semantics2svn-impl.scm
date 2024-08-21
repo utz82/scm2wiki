@@ -296,7 +296,7 @@
   (define (svn-transform-class-definition d methods)
     (let ((used-methods (svn-find-class-methods (svn-aspect->string 'name d)
 						methods)))
-      (string-append "=== Class "
+      (string-append "==== Class "
 		     (svn-aspect->string 'name d)
 		     "\n<class>"
 		     (svn-aspect->string 'name d)
@@ -336,7 +336,7 @@
 				       (filter is-method?
 					       (alist-ref 'body (cdr d))))))
       (string-append
-       "== Module "
+       "=== Module "
        (svn-aspect->string 'name d)
        "\n"
        (svn-transform-comment d)
