@@ -84,6 +84,21 @@
 			   end-of-input)))
 	       (result (cons first rest))))
 
+  (define (format-table-cell td)
+    (string-append
+     "<td>"
+     (parse (as-string
+	     (followed-by
+	      (zero-or-more
+	       (any-of (md-generic-formatting "**" #\* "<b>" "</b>")
+		       (md-generic-formatting "*" #\* "<i>" "<i>")
+		       (md-generic-formatting "`" #\` "<pre>" "<pre>")
+		       a-string
+		       (as-string (in char-set:printing))))
+	      end-of-input))
+	    td)
+     "</td>"))
+
   (define md-table
     (sequence* ((header md-table-row)
 		(_ (one-or-more (in (char-set #\| #\- #\: #\space))))
@@ -99,9 +114,11 @@
 			 (map (lambda (tr)
 				(string-append
 				 "<tr>"
-				 (string-concatenate (map (cute string-append
-							    "<td>" <> "</td>")
-							  tr))
+				 (string-concatenate
+				  (map ;; (cute string-append
+				       ;; 	 "<td>" <> "</td>")
+				   format-table-cell
+				   tr))
 				 "</tr>\n"))
 			      body))
 			"\n</table>"))))
