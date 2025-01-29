@@ -134,23 +134,17 @@
 		(_ (is #\))))
 	       (result (string-append "[[image:" address "|" alt-text "]]"))))
 
-  (define md-bold
-    (sequence* ((_ (char-seq "**"))
-		(y (one-or-more (in (print-chars-w/o #\* #\newline))))
-		(_ (char-seq "**")))
-	       (result (string-append "'''" (list->string y) "'''"))))
+  (define (md-generic-formatting delim filter lreplace rreplace)
+    (sequence* ((_ (char-seq delim))
+		(y (one-or-more (in (print-chars-w/o filter #\newline))))
+		(_ (char-seq delim)))
+	       (result (string-append lreplace (list->string y) rreplace))))
 
-  (define md-inline-code
-    (sequence* ((_ (is #\`))
-		(y (one-or-more (in (print-chars-w/o #\` #\newline))))
-		(_ (is #\`)))
-	       (result (string-append "{{" (list->string y) "}}"))))
+  (define md-bold (md-generic-formatting "**" #\* "'''" "'''"))
 
-  (define md-italic
-    (sequence* ((_ (is #\*))
-		(y (one-or-more (in (print-chars-w/o #\* #\newline))))
-		(_ (is #\*)))
-	       (result (string-append "''" (list->string y) "''"))))
+  (define md-inline-code (md-generic-formatting "`" #\` "{{" "}}"))
+
+  (define md-italic (md-generic-formatting "*" #\* "''" "''"))
 
   (define md-text
     (followed-by (zero-or-more (any-of md-heading
