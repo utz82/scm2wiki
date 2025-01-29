@@ -126,6 +126,14 @@
 	       (result (string-append "[[" uri-scheme address "|" uri-scheme
 				      address "]]"))))
 
+  (define md-image
+    (sequence* ((_ (char-seq "!["))
+		(alt-text (as-string (one-or-more (in (print-chars-w/o #\])))))
+		(_ (char-seq "]("))
+		(address (as-string (one-or-more (in (print-chars-w/o #\))))))
+		(_ (is #\))))
+	       (result (string-append "[[image:" address "|" alt-text "]]"))))
+
   (define md-bold
     (sequence* ((_ (char-seq "**"))
 		(y (one-or-more (in (print-chars-w/o #\* #\newline))))
@@ -148,6 +156,7 @@
     (followed-by (zero-or-more (any-of md-heading
 				       md-code-block
 				       md-table
+				       md-image
 				       md-link
 				       plain-link
 				       md-bold
