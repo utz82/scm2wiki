@@ -23,7 +23,7 @@
 (module semantics2md-impl
     *
   (import scheme (chicken base) (chicken module) (chicken string)
-	  srfi-1 srfi-13)
+	  srfi-1 srfi-13 srfi-14)
 
   (define (make-code-block str)
     (string-append "\n\n```Scheme\n" str "\n```\n\n"))
@@ -282,6 +282,26 @@
       (else (error (string-append "Unsupported source element "
 				  (->string (car source-element)))))))
 
+  (define (generate-toc md-text)
+    (let loop ((headings (filter (lambda (s)
+				   (and (string-prefix? "#" s)
+					(< (string-prefix-length "####" s) 4)))
+				 (string-split md-text "\n")))
+	       (toc ""))
+      (if (null? headings)
+	  toc
+	  (loop (cdr headings)
+		(string-append
+		 toc
+		 (make-string (* 4 (sub1 (string-prefix-length "###"
+							       (car headings))))
+			      #\space)
+		 "1. "
+		 (string-trim (string-trim (car headings)
+					   #\#)
+			      char-set:blank)
+		 "\n")))))
+
   ;;; Generate documentation in Markdown format from  a semantic SOURCE
   ;;; expression (as produced by parse-semantics from the scm-semantics module).
   ;;; If the source contains a module declaration, only exported symbols will be
@@ -289,17 +309,21 @@
   ;;; ANCHORS is `#t`, manual anchor links will be created for each definition,
   ;;; where the `id` property is the name of the defined binding, prefixed with
   ;;; `-def`.
-  (define (semantics->md source #!key internals anchors)
+  (define (semantics->md source #!key internals anchors toc)
     (unless (eqv? 'source (car source))
       (error "Not a semantic source expression."))
     (let* ((is-method? (lambda (elem) (eqv? 'method-definition (car elem))))
-	   (method-definitions (filter is-method? (cdr source))))
-      (string-append (string-intersperse
-		      (map (lambda (elem)
-			     (transform-source-element
-			      elem internals anchors method-definitions))
-			   (remove is-method? (cdr source)))
-		      "\n")
-		     "\n")))
+	   (method-definitions (filter is-method? (cdr source)))
+	   (output
+	    (string-append (string-intersperse
+			    (map (lambda (elem)
+				   (transform-source-element
+				    elem internals anchors method-definitions))
+				 (remove is-method? (cdr source)))
+			    "\n")
+			   "\n")))
+      (if toc
+	  (string-append (generate-toc output) "\n\n" output)
+	  output)))
 
   ) ;; end module semantics2md-impl

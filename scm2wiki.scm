@@ -35,6 +35,8 @@
 			  #:required "documentation comment prefix string")
 	(args:make-option (svn)
 			  #:none "export to svnwiki format")
+	(args:make-option (toc)
+			  #:none "generate table of contents (svnwiki only)")
 	(args:make-option (doc-internals)
 			  #:none "document non-exported symbols in modules")
 	(args:make-option (h help)
@@ -65,7 +67,8 @@
 					(current-input-port)))
 		       (or comment-prefix ";;;"))
       internals: (alist-ref 'doc-internals options)
-      anchors: (alist-ref 'a options))
+      anchors: (alist-ref 'a options)
+      toc: (alist-ref 'toc options))
      #f
      (or (and outfile
 	      (open-output-file outfile text:))

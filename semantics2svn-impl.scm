@@ -424,12 +424,12 @@
       (else (error (string-append "Unsupported source element "
 				  (->string (car source-element)))))))
 
-  (define (semantics->svn source #!key internals anchors)
+  (define (semantics->svn source #!key internals anchors toc)
     (unless (eqv? 'source (car source))
       (error "Not a semantic source expression."))
     (let* ((is-method? (lambda (elem) (eqv? 'method-definition (car elem))))
   	   (method-definitions (filter is-method? (cdr source))))
-      (string-append ;; "[[toc:]]\n"
+      (string-append (if toc "[[toc:]]\n\n" "")
 		     (string-intersperse
   		      (map (lambda (elem)
   			     (svn-transform-source-element
