@@ -55,6 +55,7 @@ option                     | function
 `-i`, `--infile=FILENAME`  | specify an input file
 `-o`, `--outfile=FILENAME` | specify an output file
 `-p`, `--prefix=STRING`    | change the comment prefix (default `";;;"`)
+`--toc`                    | automatically generate table of contents
 `--svn`                    | output to svnwiki instead of Markdown
 `-a`                       | create anchor links (Markdown only)
 `--document-internals`     | emit documentation for non-exported symbols
@@ -386,12 +387,15 @@ A procedure specialization on <mysubclass>.
 
 If you find that scm2wiki isn't suited for your needs, consider one of these alternatives:
 
-- [hahn](https://wiki.call-cc.org/eggref/4/hahn)
+- [hahn](https://wiki.call-cc.org/eggref/5/hahn)
+- [chalk](https://wiki.call-cc.org/eggref/5/chalk)
 - [schematic](https://wiki.call-cc.org/eggref/5/schematic)
 - [SchemeDoc](http://people.cs.aau.dk/~normark/schemedoc/)
 
 
 ### Version History
+
+0.4.0 - support for images, plain links, formatted text in tables in svnwiki; automatic TOC generation
 
 0.3.3 - Bugfix: Produce the same level of headers in markdown and svnwiki
 
@@ -409,12 +413,13 @@ If you find that scm2wiki isn't suited for your needs, consider one of these alt
 ### TODO
 
 * [markdown] transform variadic procedure definitions, svnwiki style
-* [svnwiki] support for markdown lists, images, plain links, formatted text in tables
+* [svnwiki] support for markdown lists
+* ~~[svnwiki] support for images, plain links, formatted text in tables~~ *done*
 * [all] better support for type annotations
 * [all] better support for macro definitions
 * [all] better support for generics
 * [all] support parameters
-* [all] option to auto-generate TOC
+* ~~[all] option to auto-generate TOC~~ *done*
 * ~~[markdown] remove unsupported svnwiki tags~~ *done*
 * ~~[all] more robust command line arguments parsing~~ *done*
 * ~~[all] support for macro, record, constant definitions etc.~~ *done*
