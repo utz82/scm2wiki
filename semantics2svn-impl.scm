@@ -114,6 +114,18 @@
 		(_ (is #\))))
 	       (result (string-append "[[" address "|" name "]]"))))
 
+  (define plain-link
+    (sequence* ((uri-scheme (as-string (any-of (char-seq "https://")
+					       (char-seq "http://")
+					       (char-seq "ftp://")
+					       (char-seq "sftp://"))))
+		(address (as-string (followed-by
+				     (one-or-more (in char-set:graphic))
+				     (any-of (in char-set:whitespace)
+					     end-of-input)))))
+	       (result (string-append "[[" uri-scheme address "|" uri-scheme
+				      address "]]"))))
+
   (define md-bold
     (sequence* ((_ (char-seq "**"))
 		(y (one-or-more (in (print-chars-w/o #\* #\newline))))
@@ -137,6 +149,7 @@
 				       md-code-block
 				       md-table
 				       md-link
+				       plain-link
 				       md-bold
 				       md-italic
 				       md-inline-code
