@@ -56,9 +56,10 @@
 	  (val (aspect->string 'value d)))
       (string-append "#### "
 		     (if write-anchors (definition->anchor d) "")
-		     (if (eqv? 'constant-definition (car d))
-			 "[constant] "
-			 "[variable] ")
+		     (case (car d)
+		       ((constant-definition) "[constant] ")
+		       ((parameter-definition) "[parameter] ")
+		       (else "[variable] "))
 		     (make-inline-code-block (aspect->string 'name d))
 		     "  \n"
 		     (if type-annotation
@@ -262,7 +263,7 @@
 				    #!optional (method-definitions '()))
     (case (car source-element)
       ((comment) (cdr source-element))
-      ((constant-definition variable-definition)
+      ((constant-definition variable-definition parameter-definition)
        (transform-generic-definition source-element write-anchors))
       ((module-declaration)
        (transform-module-declaration source-element

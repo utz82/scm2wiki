@@ -20,7 +20,7 @@ scm2wiki uses stand-alone comment blocks and commented definitions in Scheme sou
 
 scm2wiki can generate documentation for the following definition types:
 
-- variable and procedure definitions using `define`
+- variable, procedure, and parameter definitions using `define`
 - constant definitions using `define-constant`
 - macro definitions using `define-syntax` (limited support, see [example](#example))
 - record type definitions using `define-record`, `define-record-type`, and `defstruct`
@@ -31,7 +31,7 @@ scm2wiki understands Chicken Scheme's native `module` declarations. By default, 
 
 There is also some limited support for simple type annotations, including [typed records](https://wiki.call-cc.org/eggref/5/typed-records). However, this feature is not yet complete.
 
-For svnwiki output, scm2wiki translates Markdown text. However, translation is limited and does not yet support lists, plain hyperlinks, inline images, and formatting in tables.
+For svnwiki output, scm2wiki translates Markdown text. However, translation is limited and does not yet support lists.
 
 
 ### Usage
@@ -108,6 +108,11 @@ If the `-a` flag is specified, anchor links will be created for each defined bin
   ;;; is not included in the documentation.
   ;;; Override this behavior with the `--doc-internals` command line argument.
   (define-constant bar1 0)
+
+  ;;; Parameters are detected using simple heuristics. For anything more complex
+  ;;; than the definition below, use a manual annotation in the form of
+  ;;; (parameter p DEFAULT)
+  (define p (make-parameter #t))
 
   ;; An undocumented procedure
   (define (fooproc x)
@@ -191,9 +196,13 @@ A manual annotation in the first line of a comment overrides any auto-
 detected definition type. This is useful to mark closures, which scm2wiki
 would class as variable definitions otherwise.
 
+#### [parameter] `p`
+**default:** `(make-parameter #t)`
+Parameters are detected using simple heuristics. For anything more complex
+than the definition below, use a manual annotation in the form of
+(parameter p DEFAULT)
 
 #### [procedure] `(fooproc X)`
-
 
 
 #### [procedure] `(bazproc Y)`
@@ -293,6 +302,11 @@ A stand-alone comment stretching multiple lines
 <constant>bar</constant>
 ; default : {{0}}
 
+<parameter>p</parameter>
+; default : {{(make-parameter #t)}}
+Parameters are detected using simple heuristics. For anything more complex
+than the definition below, use a manual annotation in the form of
+(parameter p DEFAULT)
 
 <constant>baz</constant>
 ; default : {{0}}
@@ -395,6 +409,8 @@ If you find that scm2wiki isn't suited for your needs, consider one of these alt
 
 ### Version History
 
+0.5.0 - support for parameters
+
 0.4.0 - support for images, plain links, formatted text in tables in svnwiki; automatic TOC generation
 
 0.3.3 - Bugfix: Produce the same level of headers in markdown and svnwiki
@@ -412,13 +428,12 @@ If you find that scm2wiki isn't suited for your needs, consider one of these alt
 
 ### TODO
 
-* [markdown] transform variadic procedure definitions, svnwiki style
 * [svnwiki] support for markdown lists
 * ~~[svnwiki] support for images, plain links, formatted text in tables~~ *done*
 * [all] better support for type annotations
 * [all] better support for macro definitions
 * [all] better support for generics
-* [all] support parameters
+* ~~[all] support parameters~~ *done*
 * ~~[all] option to auto-generate TOC~~ *done*
 * ~~[markdown] remove unsupported svnwiki tags~~ *done*
 * ~~[all] more robust command line arguments parsing~~ *done*

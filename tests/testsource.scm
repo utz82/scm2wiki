@@ -39,6 +39,11 @@
   ;;; Override this behavior with the `--doc-internals` command line argument.
   (define-constant bar1 0)
 
+  ;;; Parameters are detected using simple heuristics. For anything more complex
+  ;;; than the definition below, use a manual annotation in the form of
+  ;;; (parameter p DEFAULT)
+  (define p (make-parameter #t))
+
   ;; An undocumented procedure
   (define (fooproc x)
     x)

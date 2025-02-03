@@ -199,11 +199,16 @@
 	""))
 
   (define (svn-transform-generic-definition d)
-    (let ((type-annotation (alist-ref 'type-annotation (cdr d)))
-	  (val (svn-aspect->string 'value d)))
-      (string-append "<constant>"
+    (let* ((type-annotation (alist-ref 'type-annotation (cdr d)))
+	   (val (svn-aspect->string 'value d))
+	   ;; Chicken svnwiki has no tag for variables, so consider them to be
+	   ;; constants instead
+	   (tag (if (eqv? (car d) 'parameter-definition)
+		    '("<parameter>" . "</parameter>\n")
+		    '("<constant>" . "</constant>\n"))))
+      (string-append (car tag)
 		     (svn-aspect->string 'name d)
-		     "</constant>\n"
+		     (cdr tag)
 		     (if type-annotation
 			 (string-append "; type : "
 					(svn-make-inline-code-block
@@ -406,7 +411,7 @@
     (case (car source-element)
       ((comment)
        (md->svn (cdr source-element)))
-      ((constant-definition variable-definition)
+      ((constant-definition variable-definition parameter-definition)
        (svn-transform-generic-definition source-element))
       ((module-declaration)
        (svn-transform-module-declaration source-element

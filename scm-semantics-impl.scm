@@ -28,6 +28,8 @@
 
   (define-constant default-comment-prefix ";;;")
 
+  (define p (make-parameter 0))
+
   (define (filter-map-results symbols results)
     (filter-map (lambda (sym val)
 		  (and val (cons sym val)))
@@ -140,6 +142,11 @@
 	       (filter-map-results
 		'(name type-annotation value comment)
 		(list name type-annotation val rest-comment))))
+	((parameter)
+	 (cons 'parameter-definition
+	       (filter-map-results
+		'(name type-annotation value comment)
+		(list name type-annotation val rest-comment))))
 	(else #f))))
 
   (define (a-generic-definition comment-prefix input-symbol result-symbol)
@@ -167,7 +174,13 @@
     (a-generic-definition comment-prefix 'define-constant 'constant-definition))
 
   (define (a-variable-definition comment-prefix)
-    (a-generic-definition comment-prefix 'define 'variable-definition))
+    (bind (a-generic-definition comment-prefix 'define 'variable-definition)
+	  (lambda (r)
+	    (result (if (and (alist-ref 'value (cdr r))
+			     (string-prefix? "(make-parameter"
+					     (alist-ref 'value (cdr r))))
+			(cons 'parameter-definition (cdr r))
+			r)))))
 
   (define (transform-arguments args)
     (let ((make-initializer-list-string

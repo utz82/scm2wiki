@@ -61,6 +61,15 @@
 		(alist-ref 'value (cdr res))
 		(alist-ref 'comment (cdr res)))))
 
+  (test "destructuring parameter definitions"
+	'(parameter-definition "p" "(make-parameter #t)" "bla")
+	(let ((res (parse (a-variable-definition ";;;")
+			  ";;; bla\n(define p (make-parameter #t))")))
+	  (list (car res)
+		(alist-ref 'name (cdr res))
+		(alist-ref 'value (cdr res))
+		(alist-ref 'comment (cdr res)))))
+
   (test "destructuring procedure definitions"
 	'(procedure-definition "foo" "A procedure" "(foo X Y)" "(+ x y)")
 	(let ((res (parse (a-procedure-definition ";;;")
