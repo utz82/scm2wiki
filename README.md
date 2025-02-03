@@ -302,12 +302,6 @@ A stand-alone comment stretching multiple lines
 <constant>bar</constant>
 ; default : {{0}}
 
-<parameter>p</parameter>
-; default : {{(make-parameter #t)}}
-Parameters are detected using simple heuristics. For anything more complex
-than the definition below, use a manual annotation in the form of
-(parameter p DEFAULT)
-
 <constant>baz</constant>
 ; default : {{0}}
 A documented variable
@@ -318,6 +312,13 @@ A documented variable
 A manual annotation in the first line of a comment overrides any auto-
 detected definition type. This is useful to mark closures, which scm2wiki
 would class as variable definitions otherwise.
+
+
+<parameter>p</parameter>
+; default : {{(make-parameter #t)}}
+Parameters are detected using simple heuristics. For anything more complex
+than the definition below, use a manual annotation in the form of
+(parameter p DEFAULT)
 
 
 <procedure>(fooproc X)</procedure>
