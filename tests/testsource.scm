@@ -5,7 +5,7 @@
 (module foo
     *
 
-  (import scheme (chicken base) srfi-9 coops defstruct)
+  (import scheme (chicken base) srfi-9 coops typed-records)
 
   ;;; A stand-alone comment stretching multiple lines
   ;;; *with* `formatting` **and** a [named link](https://call-cc.org)
