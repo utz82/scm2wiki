@@ -95,10 +95,9 @@ If the `-a` flag is specified, anchor links will be created for each defined bin
   ;;; A documented variable
   (define baz 0)
 
-  ;;; (procedure (foo X))
+  ;;; (procedure (foo Y))
   ;;; A manual annotation in the first line of a comment overrides any auto-
-  ;;; detected definition type. This is useful to mark closures, which scm2wiki
-  ;;; would class as variable definitions otherwise.
+  ;;; detected signature.
   (define foo
     (let ((z #t))
       (lambda (x)
@@ -191,10 +190,9 @@ with | actual      | content
 A documented variable
 
 
-#### [procedure] `(foo X)`
+#### [procedure] `(foo Y)`
 A manual annotation in the first line of a comment overrides any auto-
-detected definition type. This is useful to mark closures, which scm2wiki
-would class as variable definitions otherwise.
+detected signature.
 
 #### [parameter] `p`
 **default:** `(make-parameter #t)`
@@ -212,7 +210,7 @@ A documented procedure
 
 #### [syntax] `(footax ARG1 ...)`
 
-A procedure signature at the start of a syntax comment is interpreted as
+A list expression at the start of a syntax comment is interpreted as
 the syntax' signature. scm2wiki does not auto-detect syntax signatures.
 
 
@@ -307,11 +305,10 @@ A stand-alone comment stretching multiple lines
 A documented variable
 
 
-<procedure>(foo X)</procedure>
+<procedure>(foo Y)</procedure>
 
 A manual annotation in the first line of a comment overrides any auto-
-detected definition type. This is useful to mark closures, which scm2wiki
-would class as variable definitions otherwise.
+detected signature.
 
 
 <parameter>p</parameter>
@@ -332,7 +329,7 @@ A documented procedure
 
 <syntax>(footax ARG1 ...)</syntax>
 
-A procedure signature at the start of a syntax comment is interpreted as
+A list expression at the start of a syntax comment is interpreted as
 the syntax' signature. scm2wiki does not auto-detect syntax signatures.
 
 
@@ -409,6 +406,8 @@ If you find that scm2wiki isn't suited for your needs, consider one of these alt
 
 
 ### Version History
+
+0.6.0 - basic code analysis
 
 0.5.0 - support for parameters
 

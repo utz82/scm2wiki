@@ -24,7 +24,7 @@
 (module scm-semantics-impl
     *
   (import scheme (chicken base) (chicken module) (chicken string) (chicken port)
-	  srfi-1 srfi-13 srfi-14 comparse)
+	  (chicken condition) srfi-1 srfi-13 srfi-14 comparse)
 
   (define-constant default-comment-prefix ";;;")
 
@@ -130,23 +130,27 @@
       (case (car annotation)
 	((procedure)
 	 (cons 'procedure-definition
-	       (filter-map-results
-		'(name type-annotation signature body comment)
-		(list name
-		      type-annotation
-		      (cdr (parse a-signature (->string (cadr annotation))))
-		      val
-		      rest-comment))))
-	((constant)
-	 (cons 'constant-definition
-	       (filter-map-results
-		'(name type-annotation value comment)
-		(list name type-annotation val rest-comment))))
-	((parameter)
-	 (cons 'parameter-definition
-	       (filter-map-results
-		'(name type-annotation value comment)
-		(list name type-annotation val rest-comment))))
+	       (append (filter-map-results
+			'(name type-annotation signature body comment)
+			(list name
+			      type-annotation
+			      (cdr (parse a-signature
+					  (->string (cadr annotation))))
+			      val
+			      rest-comment))
+		       '((manual-annotation . #t)))))
+	((constant variable parameter)
+	 (cons (case (car annotation)
+		 ((constant) 'constant-definition)
+		 ((variable) 'variable-definition)
+		 ((parameter) 'parameter-definition))
+	       (append (filter-map-results
+			'(name type-annotation value comment)
+			(list name
+			      type-annotation
+			      (->string (caddr annotation))
+			      rest-comment))
+		       '((manual-annotation . #t)))))
 	(else #f))))
 
   (define (a-generic-definition comment-prefix input-symbol result-symbol)
@@ -595,6 +599,7 @@
     (filter-map (lambda (e)
 		  (and (memv (car e)
 			     '(class-definition variable-definition
+						parameter-definition
 						procedure-definition
 						record-definition
 						syntax-definition))
@@ -635,17 +640,153 @@
 					(extract-exported-symbols body))
 				    body))))))
 
+  (define (normalize-signature sig module-name)
+    (let ((transform-procedure-signature
+	   (lambda (sig)
+	     (let ((sig-expr (parse a-signature
+				    (string-drop
+				     (string-drop-right (->string (cdr sig)) 1)
+				     (string-length "#<procedure ")))))
+	       (string-append
+		"("
+		(symbol->string (car sig))
+		(string-drop
+		 (->string (cdr sig-expr))
+		 (+ 1 (string-length (->string (car sig-expr))))))))))
+      (list (car sig)
+	    (cond
+	     ((string-prefix? "#<procedure" (->string (cdr sig)))
+	      `(procedure-definition
+		(signature . ,(transform-procedure-signature sig))))
+	     ((string-prefix? "#<coops standard-class" (->string (cdr sig)))
+	      '(class-definition))
+	     ((string-prefix? (symbol->string module-name)
+			      (->string (cdr sig)))
+	      '(record-definition))
+	     (else `(variable-definition (value . ,(cdr sig))))))))
+
+  ;;; Perform basic source analysis by evaluating SOURCE in a custom namespace.
+  ;;; Returns a dictionary in form of an alist with procedure/variable/record
+  ;;; identifiers as keys. Syntax is ignored. Returns #f if evaluation fails.
+  (define (analyze-source source)
+    (handle-exceptions
+	exn
+	(begin
+	  (warning "Source analysis failed, reason: " exn)
+	  #f)
+      (let* ((pre (symbol-append (gensym) (string->symbol "#")))
+	     (test-src (with-input-from-string source read))
+	     (source-exp
+	      (if (eqv? 'module (car test-src))
+		  ;; TODO swap export list with * for doc-internals
+		  test-src
+		  ;; if not a module, wrap in a module
+		  (with-input-from-string
+		      (string-append "(module "
+				     (symbol->string pre)
+				     " * (import scheme chicken.base) "
+				     source
+				     ")")
+		    read)))
+	     (module-datums (cdr (parse (a-module-declaration ";;;")
+					(->string source-exp))))
+	     (syntax-ids (map (lambda (datum)
+				(string->symbol (alist-ref 'name (cdr datum))))
+			      (filter (lambda (datum)
+					(eqv? 'syntax-definition (car datum)))
+				      (cdr (alist-ref 'body module-datums))))))
+	(eval source-exp)
+	(eval `(import-syntax
+		(prefix ,(string->symbol (alist-ref 'name module-datums))
+			,pre)))
+	(map (lambda (id)
+	       (normalize-signature (cons id (eval (symbol-append pre id)))
+				    pre))
+	     (remove (cute memv <> syntax-ids)
+		     (map string->symbol
+			  (alist-ref 'exported-symbols module-datums)))))))
+
+  (define (revise-procedure-signature parsed-signature analyzed-signature)
+    (unless (string=? (alist-ref 'signature (cdr parsed-signature))
+		      (alist-ref 'signature (cdr analyzed-signature)))
+      ;; TODO quoting will result in differences
+      (warning "Signature mismatch for procedure "
+	       (alist-ref 'name (cdr parsed-signature))
+	       ", parser returned "
+	       (alist-ref 'signature (cdr parsed-signature))
+	       ", but analyzer returned "
+	       (alist-ref 'signature (cdr analyzed-signature))))
+    (cons (car parsed-signature)
+	  (alist-update 'signature
+		        (alist-ref 'signature (cdr analyzed-signature))
+			(cdr parsed-signature))))
+
+  (define (correct-signature parsed-signature analyzed-signature)
+    (cons (car analyzed-signature)
+	  (alist-update (caadr analyzed-signature)
+			(cdadr analyzed-signature)
+			(cdr parsed-signature))))
+
+  (define (revise-variable-signature parsed-signature analyzed-signature)
+    (if (eqv? 'variable-definition (car analyzed-signature))
+	parsed-signature
+	(correct-signature parsed-signature analyzed-signature)))
+
+  (define (revise-parameter-signature parsed-signature analyzed-signature)
+    ;; analyzer should classify parameters as variadic procedures with no
+    ;; mandatory args
+    (if (and (eqv? 'procedure-definition (car analyzed-signature))
+	     (eqv? 'ARGS
+		   (cdr (with-input-from-string
+			    (alist-ref 'signature (cdr analyzed-signature))
+			  read))))
+	parsed-signature
+	(correct-signature parsed-signature analyzed-signature)))
+
+  (define (revise-signatures source signatures)
+    (map (lambda (datum)
+	   (let ((signature-ref
+		  (lambda (datum)
+		    (car
+		     (alist-ref (string->symbol (alist-ref 'name (cdr datum)))
+				signatures)))))
+	     (if (or (memv (car datum) '(comment syntax))
+		     (alist-ref 'manual-annotation (cdr datum)))
+		 datum
+		 (case (car datum)
+		   ((module-declaration)
+		    (cons (car datum)
+			  (alist-update 'body
+					(revise-signatures
+					 (alist-ref 'body (cdr datum))
+					 signatures)
+					(cdr datum))))
+		   ((procedure-definition)
+		    (revise-procedure-signature datum (signature-ref datum)))
+		   ((variable-definition)
+		    (revise-variable-signature datum (signature-ref datum)))
+		   ((parameter-definition)
+		    (revise-parameter-signature datum (signature-ref datum)))
+		   (else datum)))))
+	 source))
+
   ;;; Parse the source code string **source** into an s-expression describing
   ;;; **source**'s semantics. Comments not starting with **comment-prefix** are
   ;;; ignored. If **comment-prefix** is omitted, it defaults to `;;;`.
   (define (parse-semantics source
 			   #!optional (comment-prefix default-comment-prefix))
-    (parse (bind (followed-by (one-or-more
-			       (any-of (a-module-declaration comment-prefix)
-				       (a-source-element comment-prefix)))
-			      (sequence maybe-whitespace end-of-input))
-		 (lambda (r)
-		   (result (cons 'source (filter-source-elements r)))))
-	   source))
+    (let ((signatures (analyze-source source)))
+      (parse (bind (followed-by (one-or-more
+				 (any-of (a-module-declaration comment-prefix)
+					 (a-source-element comment-prefix)))
+				(sequence maybe-whitespace end-of-input))
+		   (lambda (r)
+		     (result (cons 'source
+				   (if signatures
+				       (revise-signatures
+					(filter-source-elements r)
+					signatures)
+				       (filter-source-elements r))))))
+	     source)))
 
   ) ;; end module scm-semantics-impl

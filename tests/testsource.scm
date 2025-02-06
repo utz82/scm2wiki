@@ -25,10 +25,9 @@
   ;;; A documented variable
   (define baz 0)
 
-  ;;; (procedure (foo X))
+  ;;; (procedure (foo Y))
   ;;; A manual annotation in the first line of a comment overrides any auto-
-  ;;; detected definition type. This is useful to mark closures, which scm2wiki
-  ;;; would class as variable definitions otherwise.
+  ;;; detected signature.
   (define foo
     (let ((z #t))
       (lambda (x)
