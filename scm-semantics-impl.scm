@@ -28,8 +28,6 @@
 
   (define-constant default-comment-prefix ";;;")
 
-  (define p (make-parameter 0))
-
   (define (filter-map-results symbols results)
     (filter-map (lambda (sym val)
 		  (and val (cons sym val)))
@@ -678,8 +676,8 @@
 	     (test-src (with-input-from-string source read))
 	     (source-exp
 	      (if (eqv? 'module (car test-src))
-		  ;; TODO swap export list with * for doc-internals
-		  test-src
+		  ;; swap export list with * for doc-internals
+		  (append `(module ,(cadr test-src) *) (cdddr test-src))
 		  ;; if not a module, wrap in a module
 		  (with-input-from-string
 		      (string-append "(module "
@@ -688,8 +686,10 @@
 				     source
 				     ")")
 		    read)))
-	     (module-datums (cdr (parse (a-module-declaration ";;;")
-					(->string source-exp))))
+	     (module-datums (cdr (parse
+				  (followed-by (a-module-declaration ";;;")
+					       end-of-input)
+				  (->string source-exp))))
 	     (syntax-ids (map (lambda (datum)
 				(string->symbol (alist-ref 'name (cdr datum))))
 			      (filter (lambda (datum)
@@ -707,9 +707,12 @@
 			  (alist-ref 'exported-symbols module-datums)))))))
 
   (define (revise-procedure-signature parsed-signature analyzed-signature)
-    (unless (string=? (alist-ref 'signature (cdr parsed-signature))
-		      (alist-ref 'signature (cdr analyzed-signature)))
-      ;; TODO quoting will result in differences
+    (unless (equal? (with-input-from-string
+			(alist-ref 'signature (cdr parsed-signature))
+		      read)
+		    (with-input-from-string
+			(alist-ref 'signature (cdr analyzed-signature))
+		      read))
       (warning "Signature mismatch for procedure "
 	       (alist-ref 'name (cdr parsed-signature))
 	       ", parser returned "
