@@ -428,6 +428,8 @@ If you find that scm2wiki isn't suited for your needs, consider one of these alt
 
 ### TODO
 
+* [all] discovery across multiple source files/modules
+* [all] support for .egg files
 * [svnwiki] support for markdown lists
 * ~~[svnwiki] support for images, plain links, formatted text in tables~~ *done*
 * [all] better support for type annotations
